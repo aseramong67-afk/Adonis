@@ -8,7 +8,6 @@ public sealed class BindEntry
     public string Command { get; set; } = "";
     public string Description { get; set; } = "";
     public string Category { get; set; } = "";
-    public string Author { get; set; } = "";
     public bool Enabled { get; set; } = true;
     public bool Favorite { get; set; }
 }
@@ -33,12 +32,62 @@ public sealed class BindsService
         try
         {
             if (File.Exists(_file))
-                return JsonSerializer.Deserialize<List<BindEntry>>(File.ReadAllText(_file), JsonOpts) ?? [];
+            {
+                var list = JsonSerializer.Deserialize<List<BindEntry>>(File.ReadAllText(_file), JsonOpts) ?? [];
+                if (list.Count > 0) return list;
+            }
         }
         catch { }
 
-        return [];
+        return DefaultBinds;
     }
+
+    private static readonly List<BindEntry> DefaultBinds =
+    [
+        new() { Key = "G", Command = "say /buyhealth", Description = "Купить здоровье", Category = "Магазин", Enabled = true, Favorite = true },
+        new() { Key = "H", Command = "say /buyarmor", Description = "Купить броню", Category = "Магазин", Enabled = true, Favorite = true },
+        new() { Key = "кнопка", Command = "darkrp buyleaves", Description = "Купить листья", Category = "Магазин", Enabled = false },
+        new() { Key = "кнопка", Command = "darkrp buybakingsoda", Description = "Купить содовую", Category = "Магазин", Enabled = false },
+        new() { Key = "кнопка", Command = "darkrp buywaters", Description = "Купить воду", Category = "Магазин", Enabled = false },
+        new() { Key = "кнопка", Command = "darkrp buypot", Description = "Купить кастрюлю", Category = "Магазин", Enabled = false },
+        new() { Key = "кнопка", Command = "darkrp buygas", Description = "Купить газ", Category = "Магазин", Enabled = false },
+        new() { Key = "кнопка", Command = "darkrp buybucket", Description = "Купить ведро", Category = "Магазин", Enabled = false },
+        new() { Key = "кнопка", Command = "say /amode", Description = "Админ-мод", Category = "Админ", Enabled = false },
+        new() { Key = "кнопка", Command = "ulx cloak; ulx god", Description = "Невидимость + бессмертие", Category = "Админ", Enabled = false },
+        new() { Key = "кнопка", Command = "ulx uncloak; ulx ungod", Description = "Снять невидимость и бессмертие", Category = "Админ", Enabled = false },
+        new() { Key = "кнопка", Command = "ulx noclip", Description = "Режим полёта", Category = "Админ", Enabled = false },
+        new() { Key = "кнопка", Command = "ulx armor ^ 100", Description = "Выдать себе 100 брони", Category = "Админ", Enabled = false },
+        new() { Key = "кнопка", Command = "ulx hp ^ 100", Description = "Выдать себе 100 здоровья", Category = "Админ", Enabled = false },
+        new() { Key = "кнопка", Command = "fspectate", Description = "Режим наблюдателя", Category = "Админ", Enabled = false },
+        new() { Key = "кнопка", Command = "say /adminmode", Description = "Админ-мод через чат", Category = "Админ", Enabled = false },
+        new() { Key = "кнопка", Command = "say !cloak", Description = "Невидимость через чат", Category = "Админ", Enabled = false },
+        new() { Key = "кнопка", Command = "say !noclip", Description = "Ноклип через чат", Category = "Админ", Enabled = false },
+        new() { Key = "кнопка", Command = "say !armor ^ 100", Description = "100 брони через чат", Category = "Админ", Enabled = false },
+        new() { Key = "кнопка", Command = "say !hp ^ 100", Description = "100 здоровья через чат", Category = "Админ", Enabled = false },
+        new() { Key = "кнопка", Command = "say /me Показал(а) лицензию", Description = "Показать лицензию", Category = "Чат / РП", Enabled = false },
+        new() { Key = "кнопка", Command = "say /try Проверил(а) лицензию", Description = "Проверить лицензию", Category = "Чат / РП", Enabled = false },
+        new() { Key = "кнопка", Command = "say /y Стоять! Лицом к стене!", Description = "Крик: стоять у стены", Category = "Чат / РП", Enabled = false },
+        new() { Key = "кнопка", Command = "say /y Ушел 1", Description = "Крик: Ушёл 1", Category = "Чат / РП", Enabled = false },
+        new() { Key = "кнопка", Command = "say /y Ушел 2", Description = "Крик: Ушёл 2", Category = "Чат / РП", Enabled = false },
+        new() { Key = "кнопка", Command = "say /y Ушел 3", Description = "Крик: Ушёл 3", Category = "Чат / РП", Enabled = false },
+        new() { Key = "кнопка", Command = "ctp", Description = "3-е лицо (камера)", Category = "Чат / РП", Enabled = false },
+        new() { Key = "кнопка", Command = "say /me Показал(а) значок FBI", Description = "Показать значок FBI", Category = "Чат / РП", Enabled = false },
+        new() { Key = "кнопка", Command = "say /citizen", Description = "Стать гражданином", Category = "Чат / РП", Enabled = false },
+        new() { Key = "кнопка", Command = "_DarkRP_DoAnimation 1642", Description = "Анимация (танец)", Category = "Анимации", Enabled = false },
+        new() { Key = "кнопка", Command = "use tmp", Description = "Бинд на TMP", Category = "Оружие", Enabled = true },
+        new() { Key = "кнопка", Command = "use spas 12", Description = "Бинд на SPAS-12", Category = "Оружие", Enabled = true },
+        new() { Key = "кнопка", Command = "use weapon_shotgun", Description = "Дробовик (хорош на флагах)", Category = "Оружие", Enabled = true },
+        new() { Key = "кнопка", Command = "use weapon_FlechetteGun", Description = "Ковбойка", Category = "Оружие", Enabled = true },
+        new() { Key = "кнопка", Command = "use awpdragon", Description = "Длор", Category = "Оружие", Enabled = true },
+        new() { Key = "кнопка", Command = "use m9k_usas", Description = "Юсас", Category = "Оружие", Enabled = true },
+        new() { Key = "кнопка", Command = "use m9k_dbarrel", Description = "Дабла", Category = "Оружие", Enabled = true },
+        new() { Key = "кнопка", Command = "use weapon_mad_2b", Description = "Катана", Category = "Оружие", Enabled = true },
+        new() { Key = "кнопка", Command = "use m9k_barret_m82", Description = "Баретка", Category = "Оружие", Enabled = true },
+        new() { Key = "кнопка", Command = "viewmodel_fov 90", Description = "Убрать руки", Category = "Разное", Enabled = true },
+        new() { Key = "кнопка", Command = "use itemstore_pickup", Description = "Инвентарь", Category = "Разное", Enabled = true },
+        new() { Key = "кнопка", Command = "say !spectate", Description = "Спек", Category = "Разное", Enabled = true },
+        new() { Key = "кнопка", Command = "net_graph 1", Description = "Net graph", Category = "Разное", Enabled = true }
+    ];
 
     public string? CfgDir()
     {
@@ -63,7 +112,6 @@ public sealed class BindsService
                 Command = b.Command.Trim(),
                 Description = (b.Description ?? "").Trim(),
                 Category = (b.Category ?? "").Trim(),
-                Author = (b.Author ?? "").Trim(),
                 Enabled = b.Enabled,
                 Favorite = b.Favorite
             })

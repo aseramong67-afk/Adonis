@@ -403,7 +403,6 @@
           </div>
           <div class="bind-tags">
             ${b.category ? `<span class="bind-cat ${CAT_CLASS[b.category.trim()] || ""}">${escapeHtml(b.category)}</span>` : ""}
-            <span class="bind-author">${icons.user}<span>${escapeHtml(b.author) || "Без автора"}</span></span>
           </div>
         </div>
         <div class="bind-actions">
@@ -488,7 +487,6 @@
             command: b.command || "",
             description: b.description || "",
             category: b.category || "",
-            author: b.author || "",
             enabled: b.enabled !== false,
             favorite: b.favorite === true
           }))
@@ -722,7 +720,6 @@
   const bindDescInput = $("#bindDescInput");
   const bindCatInput = $("#bindCatInput");
   const bindCmdInput = $("#bindCmdInput");
-  const bindAuthorInput = $("#bindAuthorInput");
   const bindEnabledInput = $("#bindEnabledInput");
   const bindPreview = $("#bindPreview");
 
@@ -797,7 +794,6 @@
     bindDescInput.value = "";
     bindCatInput.value = "";
     bindCmdInput.value = "";
-    bindAuthorInput.value = currentUserName || "Гость";
     bindEnabledInput.checked = false;
     updateBindPreview();
     const dl = $("#bindCats");
@@ -841,7 +837,6 @@
       command,
       description: bindDescInput.value.trim(),
       category: bindCatInput.value.trim(),
-      author: bindAuthorInput.value.trim() || currentUserName || "Гость",
       enabled: bindEnabledInput.checked,
       favorite: false
     });
