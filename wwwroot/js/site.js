@@ -463,8 +463,8 @@
       card.querySelector(".bind-command").addEventListener("input", (e) => { bindsList[i].command = e.target.value; });
       card.querySelector(".bind-enabled").addEventListener("change", (e) => {
         bindsList[i].enabled = e.target.checked;
-        card.classList.toggle("disabled", !e.target.checked);
-        card.classList.toggle("enabled", e.target.checked);
+        renderBinds();
+        toast(e.target.checked ? "Бинд включён" : "Бинд выключен", e.target.checked ? "ok" : "info");
       });
       const resetBtn = card.querySelector(".bind-reset");
       if (resetBtn) resetBtn.addEventListener("click", () => {
