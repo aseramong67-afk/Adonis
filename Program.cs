@@ -167,6 +167,22 @@ app.MapGet("/api/binds/scan", (BindsService binds) =>
     return Results.Ok(new { ok = true, count = found.Count, binds = found });
 });
 
+app.MapGet("/api/game/hands", (SettingsService settings) =>
+{
+    var s = settings.Current;
+    return Results.Ok(new { enabled = s.HandsEnabled, fov = s.HandsFov });
+});
+
+app.MapPost("/api/game/hands", (SettingsService settings, BindsService binds, HandsDto dto) =>
+{
+    var s = settings.Current;
+    s.HandsEnabled = dto.Enabled;
+    s.HandsFov = Math.Clamp(dto.Fov, 54, 90);
+    settings.Save(s);
+    var result = binds.ApplyHands();
+    return Results.Ok(new { ok = result.Ok, message = result.Message, enabled = s.HandsEnabled, fov = s.HandsFov });
+});
+
 // ---------- game optimization ----------
 
 app.MapGet("/api/game/optimization", (OptimizationService opt) =>
@@ -352,3 +368,4 @@ public sealed record SettingsUpdateDto(string? TargetPath, string? AccentColor);
 
 public sealed record OptimizationUpdateDto(bool Enabled);
 public sealed record OptimizationOptionUpdateDto(string Key, bool Enabled);
+public sealed record HandsDto(bool Enabled, int Fov = 90);

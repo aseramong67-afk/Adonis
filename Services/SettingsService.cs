@@ -7,6 +7,8 @@ public sealed class SettingsData
     public string AddonsTargetPath { get; set; } = "";
     public string AccentColor { get; set; } = "#ff9f1c";
     public List<string> OptimizationOptions { get; set; } = new();
+    public bool HandsEnabled { get; set; } = true;
+    public int HandsFov { get; set; } = 90;
 }
 
 public sealed class SettingsService

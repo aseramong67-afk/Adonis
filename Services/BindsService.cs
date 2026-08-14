@@ -75,19 +75,17 @@ public sealed class BindsService
         new() { Key = "кнопка", Command = "say /me Показал(а) значок FBI", Description = "Показать значок FBI", Category = "Чат / РП", Enabled = false },
         new() { Key = "кнопка", Command = "say /citizen", Description = "Стать гражданином", Category = "Чат / РП", Enabled = false },
         new() { Key = "кнопка", Command = "_DarkRP_DoAnimation 1642", Description = "Анимация (танец)", Category = "Анимации", Enabled = false },
-        new() { Key = "кнопка", Command = "use tmp", Description = "Бинд на TMP", Category = "Оружие", Enabled = true },
-        new() { Key = "кнопка", Command = "use spas 12", Description = "Бинд на SPAS-12", Category = "Оружие", Enabled = true },
-        new() { Key = "кнопка", Command = "use weapon_shotgun", Description = "Дробовик (хорош на флагах)", Category = "Оружие", Enabled = true },
-        new() { Key = "кнопка", Command = "use weapon_FlechetteGun", Description = "Ковбойка", Category = "Оружие", Enabled = true },
-        new() { Key = "кнопка", Command = "use awpdragon", Description = "Длор", Category = "Оружие", Enabled = true },
-        new() { Key = "кнопка", Command = "use m9k_usas", Description = "Юсас", Category = "Оружие", Enabled = true },
-        new() { Key = "кнопка", Command = "use m9k_dbarrel", Description = "Дабла", Category = "Оружие", Enabled = true },
-        new() { Key = "кнопка", Command = "use weapon_mad_2b", Description = "Катана", Category = "Оружие", Enabled = true },
-        new() { Key = "кнопка", Command = "use m9k_barret_m82", Description = "Баретка", Category = "Оружие", Enabled = true },
-        new() { Key = "кнопка", Command = "viewmodel_fov 90", Description = "Убрать руки", Category = "Разное", Enabled = true },
-        new() { Key = "кнопка", Command = "use itemstore_pickup", Description = "Инвентарь", Category = "Разное", Enabled = true },
-        new() { Key = "кнопка", Command = "say !spectate", Description = "Спек", Category = "Разное", Enabled = true },
-        new() { Key = "кнопка", Command = "net_graph 1", Description = "Net graph", Category = "Разное", Enabled = true }
+        new() { Key = "кнопка", Command = "use tmp", Description = "Бинд на TMP", Category = "Оружие", Enabled = false },
+        new() { Key = "кнопка", Command = "use spas 12", Description = "Бинд на SPAS-12", Category = "Оружие", Enabled = false },
+        new() { Key = "кнопка", Command = "use weapon_shotgun", Description = "Дробовик (хорош на флагах)", Category = "Оружие", Enabled = false },
+        new() { Key = "кнопка", Command = "use weapon_FlechetteGun", Description = "Ковбойка", Category = "Оружие", Enabled = false },
+        new() { Key = "кнопка", Command = "use awpdragon", Description = "Длор", Category = "Оружие", Enabled = false },
+        new() { Key = "кнопка", Command = "use m9k_usas", Description = "Юсас", Category = "Оружие", Enabled = false },
+        new() { Key = "кнопка", Command = "use m9k_dbarrel", Description = "Дабла", Category = "Оружие", Enabled = false },
+        new() { Key = "кнопка", Command = "use weapon_mad_2b", Description = "Катана", Category = "Оружие", Enabled = false },
+        new() { Key = "кнопка", Command = "use m9k_barret_m82", Description = "Баретка", Category = "Оружие", Enabled = false },
+        new() { Key = "кнопка", Command = "use itemstore_pickup", Description = "Инвентарь", Category = "Разное", Enabled = false },
+        new() { Key = "кнопка", Command = "say !spectate", Description = "Спек", Category = "Разное", Enabled = false }
     ];
 
     public string? CfgDir()
@@ -140,12 +138,16 @@ public sealed class BindsService
                 var id = key + "\u0001" + command;
                 if (!seen.Add(id)) continue;
 
+                var known = Current.FirstOrDefault(x =>
+                    x.Command.Equals(command, StringComparison.OrdinalIgnoreCase) &&
+                    !string.IsNullOrWhiteSpace(x.Description));
+
                 found.Add(new BindEntry
                 {
                     Key = key,
                     Command = command,
-                    Description = "",
-                    Category = "",
+                    Description = known?.Description ?? "",
+                    Category = known?.Category ?? "",
                     Enabled = true,
                     Favorite = false
                 });
@@ -241,6 +243,44 @@ public sealed class BindsService
             }
 
             return new OperationResult(true, "Бинды записаны: " + bindsCfg);
+        }
+        catch (Exception ex)
+        {
+            return new OperationResult(false, "Ошибка записи конфига: " + ex.Message);
+        }
+    }
+
+    public OperationResult ApplyHands()
+    {
+        var cfgDir = CfgDir();
+        if (cfgDir is null)
+            return new OperationResult(false, "Не задана папка установки аддонов. Укажите её в настройках.");
+
+        try
+        {
+            Directory.CreateDirectory(cfgDir);
+
+            var handsCfg = Path.Combine(cfgDir, "adonis_hands.cfg");
+            var s = _settings.Current;
+            var lines = new List<string>
+            {
+                "// ==== Adonis hands ====",
+                s.HandsEnabled ? $"viewmodel_fov {s.HandsFov}" : "// убрать руки отключено",
+                "// ==== /Adonis hands ===="
+            };
+            File.WriteAllLines(handsCfg, lines);
+
+            var autoexec = Path.Combine(cfgDir, "autoexec.cfg");
+            var content = File.Exists(autoexec) ? File.ReadAllText(autoexec) : "";
+            const string marker = "exec adonis_hands.cfg";
+            if (!content.Contains(marker, StringComparison.OrdinalIgnoreCase))
+            {
+                var tail = content.Length == 0 ? "" : (content.EndsWith("\n") ? "" : "\n");
+                content += tail + "\n" + marker + "\n";
+                File.WriteAllText(autoexec, content);
+            }
+
+            return new OperationResult(true, "Убрать руки: " + (s.HandsEnabled ? $"включено (FOV {s.HandsFov})" : "выключено"));
         }
         catch (Exception ex)
         {

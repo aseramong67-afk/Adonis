@@ -219,7 +219,9 @@
       for (const a of addons) grid.appendChild(renderCard(a));
       applyFilter();
       const installed = addons.filter((a) => a.isInstalled).length;
-      statsEl.textContent = `${addons.length} аддонов · установлено ${installed}`;
+      statsEl.textContent = catalogFilter === "reskins"
+        ? `${addons.length} рескинов · установлено ${installed}`
+        : `${addons.length} аддонов · установлено ${installed}`;
     } catch {
       toast("Не удалось загрузить список аддонов", "err");
     } finally {
@@ -495,7 +497,7 @@
       originalBinds = bindsList.map(bindSnapshot);
       renderFilters();
       renderBinds();
-      syncFovSlider();
+      loadHands();
     } catch {
       toast("Не удалось загрузить бинды", "err");
     }
@@ -508,66 +510,41 @@
   const handsToggle = $("#handsToggle");
   const fovCtl = $("#fovCtl");
 
-  function findHandsBind() {
-    return bindsList.find((x) => (x.description || "").trim() === "Убрать руки");
+  async function loadHands() {
+    try {
+      const res = await fetch("/api/game/hands");
+      const data = await res.json();
+      fovRange.value = data.fov;
+      fovValue.textContent = data.fov;
+      handsToggle.checked = data.enabled;
+      fovCtl.classList.toggle("off", !data.enabled);
+    } catch { }
   }
 
-  function syncFovSlider() {
-    const b = findHandsBind();
-    const m = b && b.command.match(/viewmodel_fov\s+(\d+)/i);
-    const val = m ? Math.min(90, Math.max(54, +m[1])) : 90;
-    const on = !!b && b.enabled !== false;
-    fovRange.value = val;
-    fovValue.textContent = val;
-    handsToggle.checked = on;
-    fovCtl.classList.toggle("off", !on);
-  }
-
-  function setFovBind() {
-    const val = fovRange.value;
-    fovValue.textContent = val;
-    if (!handsToggle.checked) return;
-    const idx = bindsList.findIndex((b) => (b.description || "").trim() === "Убрать руки");
-    if (idx !== -1) {
-      bindsList[idx].command = `viewmodel_fov ${val}`;
-      bindsList[idx].enabled = true;
-    } else {
-      bindsList.push({
-        id: originalBinds.length + bindsList.length + 1,
-        key: "кнопка",
-        command: `viewmodel_fov ${val}`,
-        description: "Убрать руки",
-        category: "Разное",
-        author: currentUserName || "Гость",
-        enabled: true,
-        favorite: false
+  async function saveHands() {
+    try {
+      await fetch("/api/game/hands", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: handsToggle.checked, fov: +fovRange.value })
       });
-    }
-    renderFilters();
-    renderBinds();
-  }
-
-  function toggleHands() {
-    const on = handsToggle.checked;
-    fovCtl.classList.toggle("off", !on);
-    const idx = bindsList.findIndex((b) => (b.description || "").trim() === "Убрать руки");
-    if (on) {
-      if (idx === -1) {
-        setFovBind();
-      } else {
-        bindsList[idx].enabled = true;
-        renderFilters();
-        renderBinds();
-      }
-    } else if (idx !== -1) {
-      bindsList[idx].enabled = false;
-      renderFilters();
-      renderBinds();
+    } catch {
+      toast("Не удалось сохранить настройку «Убрать руки»", "err");
     }
   }
 
-  fovRange.addEventListener("input", setFovBind);
-  handsToggle.addEventListener("change", toggleHands);
+  function onFovInput() {
+    fovValue.textContent = fovRange.value;
+    saveHands();
+  }
+
+  function onHandsChange() {
+    fovCtl.classList.toggle("off", !handsToggle.checked);
+    saveHands();
+  }
+
+  fovRange.addEventListener("input", onFovInput);
+  handsToggle.addEventListener("change", onHandsChange);
 
   // ---------- game optimization ----------
 
