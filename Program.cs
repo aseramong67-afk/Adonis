@@ -6,7 +6,12 @@ using ReskinManager.Services;
 
 const int Port = 5180;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    ContentRootPath = AppContext.BaseDirectory,
+    WebRootPath = Path.Combine(AppContext.BaseDirectory, "wwwroot")
+});
 builder.WebHost.UseUrls($"http://localhost:{Port}");
 builder.Services.AddSingleton<SettingsService>();
 builder.Services.AddSingleton<AddonService>();
