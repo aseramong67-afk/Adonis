@@ -74,6 +74,8 @@ app.Use(async (ctx, next) =>
 
 app.MapGet("/api/addons", async (AddonService svc) => await svc.GetAddons());
 
+app.MapGet("/api/version", (UpdateService updater) => new { version = updater.CurrentVersion });
+
 app.MapGet("/api/update", async (UpdateService updater, bool force) =>
 {
     var info = await updater.CheckForUpdateAsync(force);

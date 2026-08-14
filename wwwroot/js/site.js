@@ -1298,6 +1298,14 @@
     el.classList.toggle("bad", !!isError);
   }
 
+  async function loadVersion() {
+    try {
+      const res = await fetch("/api/version");
+      const data = await res.json();
+      if (data.version) $("#verBadge").textContent = `v${data.version}`;
+    } catch {}
+  }
+
   async function checkUpdate(force) {
     setUpdateStatus("Проверка...");
     try {
@@ -1360,5 +1368,6 @@
   loadSettings();
   loadAuth();
   loadTheme();
+  loadVersion();
   checkUpdate(false);
 })();
