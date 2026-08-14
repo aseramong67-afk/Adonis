@@ -321,9 +321,22 @@
     return b.favorite ? 100 : 200;
   }
 
+  const GROUP_ORDER = ["Профессии", "Бездомные", "Правопорядок", "Криминал", "Торговцы", "Другие"];
+
   function sortBinds() {
     const ranked = bindsList.map((b, i) => ({ i, b }));
-    ranked.sort((x, y) => rankBind(x.b) - rankBind(y.b) || x.i - y.i);
+    ranked.sort((x, y) => {
+      const r = rankBind(x.b) - rankBind(y.b);
+      if (r !== 0) return r;
+      const gx = GROUP_ORDER.indexOf((x.b.group || "").trim());
+      const gy = GROUP_ORDER.indexOf((y.b.group || "").trim());
+      if (gx !== -1 || gy !== -1) {
+        const a = gx === -1 ? GROUP_ORDER.length : gx;
+        const bb = gy === -1 ? GROUP_ORDER.length : gy;
+        if (a !== bb) return a - bb;
+      }
+      return x.i - y.i;
+    });
     bindsList = ranked.map((x) => x.b);
   }
 
@@ -402,11 +415,21 @@
     renderFilters();
     const container = $("#binds");    container.innerHTML = "";
     let shown = 0;
+    let lastGroup = null;
     bindsList.forEach((b, i) => {
       if (!bindMatches(b)) return;
       shown++;
       const isPlaceholderKey = b.key.trim().toLowerCase() === "кнопка";
       const hasOriginal = originalBinds.some((o) => o.id === b.id);
+      const group = (b.group || "").trim();
+      const isProfession = (b.category || "").trim() === "Профессии";
+      if (group && isProfession && group !== lastGroup) {
+        lastGroup = group;
+        const head = document.createElement("div");
+        head.className = "bind-group-head";
+        head.textContent = group;
+        container.appendChild(head);
+      }
       const card = document.createElement("div");
       card.className = "bind-card " + (b.enabled ? "enabled" : "disabled");
       card.innerHTML = `
