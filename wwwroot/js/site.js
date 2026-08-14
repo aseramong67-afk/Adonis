@@ -984,14 +984,24 @@
         toast("В конфигах игры бинды не найдены", "info");
         return;
       }
-      const existing = new Set(bindsList.map((b) => (b.key.trim() + "\u0001" + b.command.trim()).toLowerCase()));
+      const existingByCmd = new Map();
+      bindsList.forEach((b, i) => existingByCmd.set((b.command || "").trim().toLowerCase(), i));
       let added = 0;
+      let updated = 0;
       for (const b of found) {
         const key = (b.key || "").trim();
         const cmd = (b.command || "").trim();
         if (!key || !cmd) continue;
-        if (existing.has((key + "\u0001" + cmd).toLowerCase())) continue;
-        existing.add((key + "\u0001" + cmd).toLowerCase());
+        const idx = existingByCmd.get(cmd.toLowerCase());
+        if (idx !== undefined) {
+          const cur = bindsList[idx];
+          if (cur.key.trim().toLowerCase() === "кнопка" && key.toLowerCase() !== "кнопка") {
+            cur.key = key;
+            updated++;
+          }
+          continue;
+        }
+        existingByCmd.set(cmd.toLowerCase(), bindsList.length);
         bindsList.push({
           id: bindsList.length + 1,
           key,
@@ -1003,11 +1013,14 @@
         });
         added++;
       }
-      if (added) {
+      if (added || updated) {
         originalBinds = bindsList.map(bindSnapshot);
         renderFilters();
         renderBinds();
-        toast(`Найдено ${found.length}, добавлено ${added} биндов из конфигов игры`, "ok");
+        const parts = [];
+        if (added) parts.push(`добавлено ${added}`);
+        if (updated) parts.push(`обновлено клавиш: ${updated}`);
+        toast(`Найдено ${found.length}: ${parts.join(", ")}`, "ok");
       } else {
         toast(`Найдено ${found.length} — все уже есть в списке`, "info");
       }
