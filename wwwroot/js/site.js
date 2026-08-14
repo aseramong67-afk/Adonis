@@ -145,7 +145,10 @@
       $("#sub-binds").classList.toggle("hidden", show !== "binds");
       $("#sub-game").classList.toggle("hidden", show !== "game");
       if (show === "binds") loadBinds();
-      if (show === "game") loadOptimization();
+      if (show === "game") {
+        loadOptimization();
+        loadLaunch();
+      }
     }));
 
   // ---------- addons ----------
@@ -267,7 +270,17 @@
     else window.open(url, "_blank");
   }
 
-  $("#btnLaunchGmod").addEventListener("click", () => openWorkshop("steam://rungameid/4000"));
+  async function launchGmod() {
+    try {
+      const res = await fetch("/api/game/launch/url");
+      const data = await res.json();
+      openWorkshop(data.url);
+    } catch {
+      openWorkshop("steam://rungameid/4000");
+    }
+  }
+
+  $("#btnLaunchGmod").addEventListener("click", launchGmod);
 
   // ---------- lightbox ----------
 
@@ -676,12 +689,91 @@
 
   // ---------- launch parameters ----------
 
+  const launchOptionsEl = $("#launchOptions");
+  const launchStatusEl = $("#launchStatus");
+
+  function renderLaunchOptions(options) {
+    if (!launchOptionsEl) return;
+    launchOptionsEl.innerHTML = "";
+    options.forEach((o) => {
+      const label = document.createElement("label");
+      label.className = "launch-opt";
+
+      const info = document.createElement("div");
+      info.className = "launch-opt-info";
+      const strong = document.createElement("strong");
+      strong.textContent = o.arg;
+      const small = document.createElement("small");
+      small.textContent = o.description;
+      info.appendChild(strong);
+      info.appendChild(small);
+
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.checked = !!o.enabled;
+      input.dataset.key = o.key;
+      input.addEventListener("change", () => toggleLaunchOption(input));
+
+      label.appendChild(input);
+      label.appendChild(info);
+      launchOptionsEl.appendChild(label);
+    });
+  }
+
+  async function loadLaunch() {
+    try {
+      const res = await fetch("/api/game/launch");
+      const data = await res.json();
+      renderLaunchOptions(Array.isArray(data.options) ? data.options : []);
+      const count = (Array.isArray(data.options) ? data.options : []).filter((o) => o.enabled).length;
+      if (launchStatusEl) {
+        launchStatusEl.textContent = count === 0
+          ? "Ничего не выбрано — игра запустится без параметров."
+          : `Будет запущено с ${count} параметр(а/ов).`;
+        launchStatusEl.classList.toggle("good", count > 0);
+      }
+    } catch {
+      if (launchStatusEl) launchStatusEl.textContent = "Не удалось загрузить параметры запуска.";
+    }
+  }
+
+  async function toggleLaunchOption(input) {
+    const key = input.dataset.key;
+    const options = [...launchOptionsEl.querySelectorAll("input")]
+      .filter((i) => i !== input)
+      .map((i) => i.dataset.key);
+    if (input.checked) options.push(key);
+    try {
+      const res = await fetch("/api/game/launch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(options)
+      });
+      const data = await res.json();
+      if (data.ok) {
+        const count = options.length;
+        launchStatusEl.textContent = count === 0
+          ? "Ничего не выбрано — игра запустится без параметров."
+          : `Будет запущено с ${count} параметр(а/ов).`;
+        launchStatusEl.classList.toggle("good", count > 0);
+      }
+    } catch {
+      input.checked = !input.checked;
+      toast("Ошибка сохранения параметров", "err");
+    }
+  }
+
   $("#btnCopyLaunch").addEventListener("click", async () => {
-    const text = [...$("#launchCmd").querySelectorAll(".launch-token")]
-      .map(t => t.textContent.trim()).filter(Boolean).join(" ");
+    const keys = [...launchOptionsEl.querySelectorAll("input:checked")].map((i) => i.dataset.key);
+    let text = "";
+    try {
+      const res = await fetch("/api/game/launch/url");
+      const data = await res.json();
+      text = data.url || "";
+    } catch {}
     try {
       await navigator.clipboard.writeText(text);
-      toast("Параметры запуска скопированы", "ok");
+      toast("Ссылка запуска скопирована", "ok");
     } catch {
       const ta = document.createElement("textarea");
       ta.value = text;
@@ -689,7 +781,7 @@
       ta.select();
       document.execCommand("copy");
       ta.remove();
-      toast("Параметры запуска скопированы", "ok");
+      toast("Ссылка запуска скопирована", "ok");
     }
   });
 

@@ -246,6 +246,34 @@ app.MapPost("/api/game/optimization/option", (OptimizationService opt, Optimizat
     });
 });
 
+// ---------- launch parameters ----------
+
+app.MapGet("/api/game/launch", (SettingsService settings) =>
+{
+    var enabled = settings.EnabledLaunchKeys();
+    return Results.Ok(new
+    {
+        options = SettingsService.LaunchOptions.Select(o => new
+        {
+            key = o.Key,
+            arg = o.Arg,
+            title = o.Title,
+            description = o.Description,
+            enabled = enabled.Contains(o.Key, StringComparer.OrdinalIgnoreCase)
+        }),
+        url = settings.BuildLaunchUrl()
+    });
+});
+
+app.MapPost("/api/game/launch", (SettingsService settings, List<string> keys) =>
+{
+    settings.SaveLaunchKeys(keys ?? []);
+    return Results.Ok(new { ok = true, url = settings.BuildLaunchUrl() });
+});
+
+app.MapGet("/api/game/launch/url", (SettingsService settings) =>
+    Results.Ok(new { url = settings.BuildLaunchUrl() }));
+
 // ---------- auth ----------
 app.MapGet("/api/auth/status", (AuthService auth, HttpContext ctx) =>
 {

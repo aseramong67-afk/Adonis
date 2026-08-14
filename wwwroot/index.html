@@ -227,20 +227,8 @@
               <button class="btn small" id="btnCopyLaunch" type="button">Копировать</button>
             </header>
             <div class="game-card-body">
-              <div class="launch-tokens" id="launchCmd">
-                <span class="launch-token">-novid</span>
-                <span class="launch-token">-nojoy</span>
-                <span class="launch-token">-dxlevel 95</span>
-                <span class="launch-token">+mat_queue_mode 2</span>
-                <span class="launch-token">-high</span>
-              </div>
-              <ul class="launch-help">
-                <li><code>-novid</code><span>убирает заставку</span></li>
-                <li><code>-nojoy</code><span>отключает джойстик</span></li>
-                <li><code>-dxlevel 95</code><span>использует DirectX 9.5</span></li>
-                <li><code>+mat_queue_mode 2</code><span>ускоряет рендеринг</span></li>
-                <li><code>-high</code><span>высокий приоритет для процессора</span></li>
-              </ul>
+              <div class="launch-options" id="launchOptions"></div>
+              <p class="hint opt-status" id="launchStatus"></p>
             </div>
           </article>
         </div>
