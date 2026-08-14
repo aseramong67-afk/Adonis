@@ -16,7 +16,16 @@ public sealed class UpdateService
 {
     private readonly GitHubOptions _gitHub;
     private readonly IWebHostEnvironment _env;
-    private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(30) };
+    private readonly HttpClient _http = CreateHttpClient();
+
+    private static HttpClient CreateHttpClient()
+    {
+        var handler = new HttpClientHandler { UseProxy = false };
+        var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(30) };
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("Adonis-Updater/1.0");
+        client.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
+        return client;
+    }
 
     public string CurrentVersion { get; } = GetCurrentVersion();
 
@@ -24,8 +33,6 @@ public sealed class UpdateService
     {
         _env = env;
         _gitHub = config.GetSection("GitHub").Get<GitHubOptions>() ?? new GitHubOptions();
-        _http.DefaultRequestHeaders.UserAgent.ParseAdd("Adonis-Updater/1.0");
-        _http.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
     }
 
     private static string GetCurrentVersion()

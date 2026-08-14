@@ -10,8 +10,16 @@ public sealed class AddonService
     private readonly string _reskinsRoot;
     private readonly SettingsService _settings;
     private readonly GitHubOptions _gitHub;
-    private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(30) };
+    private static readonly HttpClient _http = CreateHttpClient();
     private static readonly JsonSerializerOptions JsonOpts = new() { PropertyNameCaseInsensitive = true };
+
+    private static HttpClient CreateHttpClient()
+    {
+        var handler = new HttpClientHandler { UseProxy = false };
+        var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(30) };
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("Adonis/1.0");
+        return client;
+    }
 
     private CatalogJson? _catalogCache;
     private DateTime _catalogFetchedAt = DateTime.MinValue;
