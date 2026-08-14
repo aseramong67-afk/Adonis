@@ -997,6 +997,7 @@
           const cur = bindsList[idx];
           if (cur.key.trim().toLowerCase() === "кнопка" && key.toLowerCase() !== "кнопка") {
             cur.key = key;
+            cur.enabled = true;
             updated++;
           }
           continue;

@@ -317,21 +317,32 @@ public sealed class BindsService
         var found = ScanGameConfigs();
         if (found.Count == 0) return (0, 0);
 
-        var known = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var b in Current)
-            known.Add(b.Command.Trim());
-
-        var added = 0;
         var merged = new List<BindEntry>(Current);
+        var added = 0;
+        var updated = 0;
+
         foreach (var b in found)
         {
-            if (known.Contains(b.Command.Trim())) continue;
-            known.Add(b.Command.Trim());
+            var existing = merged.FirstOrDefault(x =>
+                x.Command.Equals(b.Command.Trim(), StringComparison.OrdinalIgnoreCase));
+
+            if (existing is not null)
+            {
+                if (existing.Key.Trim().Equals("кнопка", StringComparison.OrdinalIgnoreCase) &&
+                    !b.Key.Trim().Equals("кнопка", StringComparison.OrdinalIgnoreCase))
+                {
+                    existing.Key = b.Key.Trim();
+                    existing.Enabled = true;
+                    updated++;
+                }
+                continue;
+            }
+
             merged.Add(b);
             added++;
         }
 
-        if (added == 0) return (found.Count, 0);
+        if (added == 0 && updated == 0) return (found.Count, 0);
 
         Current = merged;
         try
