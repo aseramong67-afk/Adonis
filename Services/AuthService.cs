@@ -32,7 +32,7 @@ public sealed class AuthService
     private readonly AppState _state;
     private readonly string _sessionsPath;
     private readonly object _saveLock = new();
-    private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(15) };
+    private readonly HttpClient _http = new(new HttpClientHandler { UseProxy = false }) { Timeout = TimeSpan.FromSeconds(15) };
     private readonly ConcurrentDictionary<string, UserInfo> _sessions = new();
 
     public bool DiscordConfigured =>
