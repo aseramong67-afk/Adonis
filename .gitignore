@@ -1,0 +1,16 @@
+# Build results
+bin/
+obj/
+publish/
+*.user
+.vs/
+
+# Local addon sources (packed zips live in reskins/)
+addons-src/
+
+# User data & secrets
+auth.json
+binds.json
+sessions.json
+settings.json
+appsettings.Development.json

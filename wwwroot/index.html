@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Adonis</title>
+  <link rel="icon" type="image/png" href="/icon.png">
+  <link rel="stylesheet" href="/css/site.css">
+  <script>
+    try {
+      document.documentElement.setAttribute("data-theme", localStorage.getItem("adonis-theme") === "light" ? "light" : "dark");
+    } catch (e) {}
+  </script>
+</head>
+<body>
+  <div class="titlebar" id="titlebar">
+    <div class="titlebar-brand">
+      <img src="/icon.png" alt="Adonis">
+      <span>Adonis</span>
+    </div>
+    <div class="titlebar-controls">
+      <button class="win-btn" id="winMin" type="button" title="Свернуть">
+        <svg viewBox="0 0 12 12"><line x1="2" y1="6" x2="10" y2="6" stroke="currentColor" stroke-width="1.1"/></svg>
+      </button>
+      <button class="win-btn" id="winMax" type="button" title="Развернуть">
+        <svg viewBox="0 0 12 12"><rect x="2" y="2" width="8" height="8" fill="none" stroke="currentColor" stroke-width="1.1"/></svg>
+      </button>
+      <button class="win-btn win-close" id="winClose" type="button" title="Закрыть">
+        <svg viewBox="0 0 12 12"><line x1="2.5" y1="2.5" x2="9.5" y2="9.5" stroke="currentColor" stroke-width="1.1"/><line x1="9.5" y1="2.5" x2="2.5" y2="9.5" stroke="currentColor" stroke-width="1.1"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo"><img src="/icon.png" alt="Adonis"></span>
+      <div>
+        <h1>Adonis</h1>
+        <p class="sub">Менеджер рескинов аддонов Garry's Mod</p>
+      </div>
+    </div>
+    <nav class="nav">
+      <button class="nav-item active" data-view="addons" type="button">Аддоны</button>
+      <button class="nav-item" data-view="reskins" type="button">Рескины</button>
+      <button class="nav-item" data-view="binds" type="button">Игра</button>
+    </nav>
+    <div class="topbar-right">
+      <span class="ver-badge" id="verBadge" title="Версия приложения">v1.0.0</span>
+      <button class="btn primary launch-btn" id="btnLaunchGmod" type="button" title="Запустить Garry's Mod">
+        <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+        Запустить GMod
+      </button>
+      <span class="target-path" id="targetPath" title="Папка установки"></span>
+      <div id="userArea" class="user-area"></div>
+      <button class="gear-btn" id="btnSettings" type="button" title="Настройки">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <div id="view-addons" class="view">
+      <section class="toolbar">
+        <div class="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input id="search" type="search" placeholder="Поиск аддона..." autocomplete="off">
+        </div>
+        <div class="stats" id="stats"></div>
+      </section>
+
+      <div id="addons" class="addons"></div>
+      <div id="empty" class="empty hidden">
+        <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          <line x1="11" y1="8" x2="11" y2="14"></line>
+          <line x1="8" y1="11" x2="14" y2="11"></line>
+        </svg>
+        <p>Ничего не найдено</p>
+      </div>
+      <div id="loading" class="empty">
+        <div class="spinner"></div>
+        <p>Загрузка...</p>
+      </div>
+    </div>
+
+    <div id="view-binds" class="view hidden">
+      <nav class="subnav">
+        <button class="subnav-item active" data-subview="binds" type="button">Бинды</button>
+        <button class="subnav-item" data-subview="game" type="button">Настройка игры</button>
+      </nav>
+
+      <div id="sub-binds" class="subview">
+      <section class="toolbar binds-head">
+        <div class="binds-title">
+          <h2>Бинды</h2>
+          <p class="section-desc">Создавайте бинды в конструкторе. Они записываются в <code>garrysmod/cfg/autoexec.cfg</code> сразу после сохранения и действуют при запуске игры — без захода в её настройки. Новые бинды по умолчанию выключены.</p>
+        </div>
+        <div class="binds-actions">
+          <button class="btn" id="btnAddBind" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Конструктор
+          </button>
+          <button class="btn" id="btnDisableAll" type="button" title="Выключить все бинды">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+            Выключить все
+          </button>
+          <button class="btn primary" id="btnSaveBinds" type="button">Сохранить</button>
+        </div>
+      </section>
+
+      <div class="binds-wrap">
+        <div class="binds-filterbar">
+          <div class="dd" id="ddCat">
+            <button class="dd-btn" type="button">
+              <span class="dd-value" id="ddCatValue">Категория: все</span>
+              <svg class="dd-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="dd-menu hidden" id="ddCatMenu"></div>
+          </div>
+          <div class="dd" id="ddStatus">
+            <button class="dd-btn" type="button">
+              <span class="dd-value" id="ddStatusValue">Статус: любые</span>
+              <svg class="dd-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="dd-menu hidden" id="ddStatusMenu"></div>
+          </div>
+          <div class="dd" id="ddFav">
+            <button class="dd-btn" type="button">
+              <span class="dd-value" id="ddFavValue">Избранные: любые</span>
+              <svg class="dd-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="dd-menu hidden" id="ddFavMenu"></div>
+          </div>
+          <span class="filter-count" id="filterCount"></span>
+        </div>
+        <div id="binds" class="binds"></div>
+        <div id="bindsEmpty" class="empty hidden">
+          <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+          <p id="bindsEmptyText">Нет биндов. Нажмите «Конструктор».</p>
+        </div>
+      </div>
+      </div>
+
+      <div id="sub-game" class="subview hidden">
+        <div class="game-settings">
+          <div class="game-head">
+            <h2>Настройка игры</h2>
+            <p class="section-desc">Оптимизация, конфигурация и параметры запуска Garry's Mod</p>
+          </div>
+
+          <article class="game-card">
+            <header class="game-card-head">
+              <div class="game-card-title">
+                <span class="game-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                </span>
+                <div>
+                  <h3>Убрать руки</h3>
+                  <p>Скрыть модель рук через <code>viewmodel_fov</code></p>
+                </div>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="handsToggle">
+                <span></span>
+              </label>
+            </header>
+            <div class="game-card-body off" id="fovCtl">
+              <div class="fov-row">
+                <span>Значение</span>
+                <span class="fov-value-badge" id="fovValue">90</span>
+              </div>
+              <input type="range" id="fovRange" min="54" max="90" step="1" value="90">
+              <div class="game-card-actions">
+                <button class="btn primary" id="btnSaveGame" type="button">Сохранить</button>
+              </div>
+            </div>
+          </article>
+
+          <article class="game-card">
+            <header class="game-card-head">
+              <div class="game-card-title">
+                <span class="game-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                </span>
+                <div>
+                  <h3>Конфиг оптимизации</h3>
+                  <p>Отключить частицы и эффекты для повышения FPS</p>
+                </div>
+              </div>
+              <span class="badge off" id="optStateBadge">Выкл</span>
+              <label class="switch">
+                <input type="checkbox" id="optToggle">
+                <span></span>
+              </label>
+            </header>
+            <div class="game-card-body" id="optBody">
+              <div class="opt-rows hidden" id="optRows"></div>
+              <p class="hint opt-status" id="optStatus"></p>
+            </div>
+          </article>
+
+          <article class="game-card">
+            <header class="game-card-head">
+              <div class="game-card-title">
+                <span class="game-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+                </span>
+                <div>
+                  <h3>Параметры запуска</h3>
+                  <p>Steam → Garry's Mod → Свойства → Параметры запуска</p>
+                </div>
+              </div>
+              <button class="btn small" id="btnCopyLaunch" type="button">Копировать</button>
+            </header>
+            <div class="game-card-body">
+              <div class="launch-tokens" id="launchCmd">
+                <span class="launch-token">-novid</span>
+                <span class="launch-token">-nojoy</span>
+                <span class="launch-token">-dxlevel 95</span>
+                <span class="launch-token">+mat_queue_mode 2</span>
+                <span class="launch-token">-high</span>
+              </div>
+              <ul class="launch-help">
+                <li><code>-novid</code><span>убирает заставку</span></li>
+                <li><code>-nojoy</code><span>отключает джойстик</span></li>
+                <li><code>-dxlevel 95</code><span>использует DirectX 9.5</span></li>
+                <li><code>+mat_queue_mode 2</code><span>ускоряет рендеринг</span></li>
+                <li><code>-high</code><span>высокий приоритет для процессора</span></li>
+              </ul>
+            </div>
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div id="view-settings" class="view hidden">
+      <div class="settings-panel">
+        <section class="settings-section">
+          <h2>Папка установки</h2>
+          <p class="section-desc">Куда Adonis устанавливает аддоны</p>
+          <div class="path-row">
+            <input id="targetPathInput" type="text" placeholder="C:\Program Files (x86)\Steam\...\garrysmod\addons" spellcheck="false">
+            <button class="btn" id="btnDetect" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                <line x1="11" y1="8" x2="11" y2="14"></line>
+                <line x1="8" y1="11" x2="14" y2="11"></line>
+              </svg>
+              Найти Steam
+            </button>
+          </div>
+          <p class="hint" id="targetHint"></p>
+          <button class="btn primary" id="btnSavePath" type="button">Сохранить</button>
+        </section>
+
+        <section class="settings-section">
+          <h2>Тема оформления</h2>
+          <p class="section-desc">Светлая или тёмная тема приложения</p>
+          <label class="modal-toggle" for="themeLight" style="margin-bottom: 6px;">
+            <span>Светлая тема</span>
+            <span class="switch">
+              <input type="checkbox" id="themeLight">
+              <span></span>
+            </span>
+          </label>
+        </section>
+
+        <section class="settings-section">
+          <h2>Цвет интерфейса</h2>
+          <p class="section-desc">Акцентный цвет приложения</p>
+          <div class="color-picker" id="colorPicker"></div>
+          <div class="custom-color">
+            <button class="swatch-open" id="swatchOpen" type="button" title="Свой цвет">
+              <span class="swatch-preview" id="swatchPreview"></span>
+              <span>Свой цвет</span>
+            </button>
+            <div class="color-popover hidden" id="colorPopover">
+              <div class="sv-area" id="svArea">
+                <div class="sv-marker" id="svMarker"></div>
+              </div>
+              <div class="hue-slider" id="hueSlider">
+                <div class="hue-thumb" id="hueThumb"></div>
+              </div>
+              <div class="hex-row">
+                <span class="hex-hash">#</span>
+                <input id="hexInput" type="text" maxlength="6" spellcheck="false" autocomplete="off" placeholder="ff9f1c">
+                <button class="btn small" id="hexApply" type="button">ОК</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="settings-section">
+          <h2>Аккаунт</h2>
+          <p class="section-desc">Вход через Discord</p>
+          <div id="settingsAccount" class="account-box"></div>
+        </section>
+
+        <section class="settings-section">
+          <h2>Обновление</h2>
+          <p class="section-desc">Проверка новых версий приложения на GitHub</p>
+          <div class="update-box" id="updateBox">
+            <span class="update-status" id="updateStatus">Проверка...</span>
+            <button class="btn" id="btnCheckUpdate" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36L21 8"/><path d="M21 3v5h-5"/></svg>
+              Проверить обновления
+            </button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <div id="toasts" class="toasts"></div>
+
+  <div id="bindModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h2>Конструктор бинда</h2>
+
+      <div class="ctor-key">
+        <span class="keycap big">
+          <input id="bindKeyInput" type="text" placeholder="?" maxlength="1" spellcheck="false" autocomplete="off">
+        </span>
+      </div>
+
+      <div class="ctor-palette" id="bindPalette"></div>
+
+      <div class="ctor-grid">
+        <div class="modal-field">
+          <label>Описание</label>
+          <input id="bindDescInput" type="text" placeholder="Купить броню" spellcheck="false" autocomplete="off">
+        </div>
+
+        <div class="modal-field">
+          <label>Категория</label>
+          <input id="bindCatInput" type="text" placeholder="Админ" spellcheck="false" autocomplete="off" list="bindCats">
+          <datalist id="bindCats">
+            <option value="Админ"></option>
+            <option value="Магазин"></option>
+            <option value="Анимации"></option>
+            <option value="Чат / РП"></option>
+            <option value="Профессии"></option>
+          </datalist>
+        </div>
+
+        <div class="modal-field">
+          <label>Команда</label>
+          <input id="bindCmdInput" type="text" placeholder="say /buyarmor" spellcheck="false" autocomplete="off">
+        </div>
+
+        <div class="modal-field">
+          <label>Автор</label>
+          <input id="bindAuthorInput" type="text" placeholder="Ваш ник" spellcheck="false" autocomplete="off">
+        </div>
+      </div>
+
+      <label class="modal-toggle">
+        <span>Бинд активен</span>
+        <span class="switch">
+          <input type="checkbox" id="bindEnabledInput">
+          <span></span>
+        </span>
+      </label>
+
+      <div class="ctor-preview" id="bindPreview">bind "?" "..."</div>
+
+      <div class="modal-actions">
+        <button class="btn ghost" id="bindModalCancel" type="button">Отмена</button>
+        <button class="btn primary" id="bindModalAdd" type="button">Добавить бинд</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="welcome" class="welcome hidden">
+    <div class="welcome-card">
+      <img class="welcome-logo" src="/icon.png" alt="Adonis">
+      <h1>Добро пожаловать в Adonis</h1>
+      <p class="welcome-sub">Менеджер рескинов и аддонов для Garry's Mod. Войдите, чтобы сохранять настройки и синхронизировать каталог между устройствами.</p>
+      <div class="welcome-actions">
+        <button class="btn primary login-discord" id="welcomeLogin" type="button">Войти через Discord</button>
+        <button class="btn ghost" id="welcomeGuest" type="button">Войти как гость</button>
+      </div>
+      <p class="welcome-note">Гостю доступны все функции приложения, но данные хранятся только на этом устройстве.</p>
+    </div>
+  </div>
+
+  <div id="lightbox" class="lightbox hidden">
+    <img src="" alt="Просмотр">
+  </div>
+
+  <div class="resize-handle resize-tl" data-edge="13"></div>
+  <div class="resize-handle resize-t" data-edge="12"></div>
+  <div class="resize-handle resize-tr" data-edge="14"></div>
+  <div class="resize-handle resize-l" data-edge="10"></div>
+  <div class="resize-handle resize-r" data-edge="11"></div>
+  <div class="resize-handle resize-bl" data-edge="16"></div>
+  <div class="resize-handle resize-b" data-edge="15"></div>
+  <div class="resize-handle resize-br" data-edge="17"></div>
+
+  <script src="/js/site.js"></script>
+</body>
+</html>

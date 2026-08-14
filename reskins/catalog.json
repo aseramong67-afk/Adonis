@@ -1,0 +1,45 @@
+{
+    "version":  "1",
+    "updatedAt":  "2026-08-14",
+    "addons":  [
+                   {
+                       "id":  "aroblox-eblan",
+                       "title":  "Ковбойка рескин",
+                       "author":  "Godzz",
+                       "authorAvatar":  "avatars/godzz.png",
+                       "type":  "reskin",
+                       "tags":  [
+                                    "weapon",
+                                    "pistol",
+                                    "ковбойка"
+                                ],
+                       "description":  "Рескин оружия ковбойки",
+                       "workshopUrl":  "https://steamcommunity.com/sharedfiles/filedetails/?id=3485030209",
+                       "preview":  "previews/aroblox-eblan.png",
+                       "archive":  "zips/aroblox-eblan.zip",
+                       "ignore":  [
+
+                                  ],
+                       "sizeBytes":  1014665
+                   },
+                   {
+                       "id":  "hit-partikl",
+                       "title":  "Hit Particles",
+                       "author":  "Godzz",
+                       "authorAvatar":  "avatars/godzz.png",
+                       "type":  "Аддон",
+                       "tags":  [
+                                    "hit",
+                                    "particles"
+                                ],
+                       "description":  "Частицы и эффекты при попадании",
+                       "workshopUrl":  null,
+                       "preview":  "previews/hit-partikl.png",
+                       "archive":  "zips/hit-partikl.zip",
+                       "ignore":  [
+
+                                  ],
+                       "sizeBytes":  1082582
+                   }
+               ]
+}
