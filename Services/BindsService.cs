@@ -58,13 +58,21 @@ public sealed class BindsService
 
     private static List<BindEntry> MergeDefaults(List<BindEntry> list)
     {
-        var known = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var result = new List<BindEntry>(list.Count + DefaultBinds.Count);
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var changed = false;
 
         foreach (var b in list)
         {
             var cmd = b.Command.Trim();
+            if (cmd.Length == 0) continue;
+
+            if (!seen.Add(cmd))
+            {
+                changed = true;
+                continue;
+            }
+
             var def = DefaultBinds.FirstOrDefault(d =>
                 d.Command.Equals(cmd, StringComparison.OrdinalIgnoreCase));
 
@@ -79,14 +87,13 @@ public sealed class BindsService
                 changed = true;
             }
 
-            known.Add(cmd);
             result.Add(b);
         }
 
         foreach (var d in DefaultBinds)
         {
             var cmd = d.Command.Trim();
-            if (known.Add(cmd))
+            if (seen.Add(cmd))
             {
                 result.Add(new BindEntry
                 {
