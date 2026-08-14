@@ -30,17 +30,75 @@ public sealed class BindsService
 
     private List<BindEntry> Load()
     {
+        var list = new List<BindEntry>();
         try
         {
             if (File.Exists(_file))
             {
-                var list = JsonSerializer.Deserialize<List<BindEntry>>(File.ReadAllText(_file), JsonOpts) ?? [];
-                if (list.Count > 0) return list;
+                list = JsonSerializer.Deserialize<List<BindEntry>>(File.ReadAllText(_file), JsonOpts) ?? [];
             }
         }
-        catch { }
+        catch { list = []; }
 
-        return DefaultBinds;
+        if (list.Count == 0)
+            return DefaultBinds;
+
+        var merged = MergeDefaults(list);
+        if (merged != list)
+        {
+            try
+            {
+                File.WriteAllText(_file, JsonSerializer.Serialize(merged, new JsonSerializerOptions { WriteIndented = true }));
+            }
+            catch { }
+        }
+        return merged;
+    }
+
+    private static List<BindEntry> MergeDefaults(List<BindEntry> list)
+    {
+        var known = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var result = new List<BindEntry>(list.Count + DefaultBinds.Count);
+        var changed = false;
+
+        foreach (var b in list)
+        {
+            var cmd = b.Command.Trim();
+            var def = DefaultBinds.FirstOrDefault(d =>
+                d.Command.Equals(cmd, StringComparison.OrdinalIgnoreCase));
+
+            if (def is not null &&
+                (!def.Description.Equals(b.Description ?? "", StringComparison.Ordinal) ||
+                 !def.Category.Equals(b.Category ?? "", StringComparison.Ordinal)))
+            {
+                b.Description = def.Description;
+                b.Category = def.Category;
+                changed = true;
+            }
+
+            known.Add(cmd);
+            result.Add(b);
+        }
+
+        foreach (var d in DefaultBinds)
+        {
+            var cmd = d.Command.Trim();
+            if (known.Add(cmd))
+            {
+                result.Add(new BindEntry
+                {
+                    Key = d.Key,
+                    Command = d.Command,
+                    Description = d.Description,
+                    Category = d.Category,
+                    Enabled = d.Enabled,
+                    Favorite = d.Favorite
+                });
+                changed = true;
+            }
+        }
+
+        return changed ? result : list;
     }
 
     private static readonly List<BindEntry> DefaultBinds =
@@ -73,8 +131,46 @@ public sealed class BindsService
         new() { Key = "кнопка", Command = "say /y Ушел 3", Description = "Крик: Ушёл 3", Category = "Чат / РП", Enabled = false },
         new() { Key = "кнопка", Command = "ctp", Description = "3-е лицо (камера)", Category = "Чат / РП", Enabled = false },
         new() { Key = "кнопка", Command = "say /me Показал(а) значок FBI", Description = "Показать значок FBI", Category = "Чат / РП", Enabled = false },
-        new() { Key = "кнопка", Command = "say /citizen", Description = "Стать гражданином", Category = "Чат / РП", Enabled = false },
         new() { Key = "кнопка", Command = "_DarkRP_DoAnimation 1642", Description = "Анимация (танец)", Category = "Анимации", Enabled = false },
+        new() { Key = "кнопка", Command = "say /citizen", Description = "Гражданин", Category = "Профессии", Enabled = false },
+        new() { Key = "кнопка", Command = "say /buis", Description = "Бизнесмен", Category = "Профессии", Enabled = false },
+        new() { Key = "кнопка", Command = "say /ohotr", Description = "Охотник на собак", Category = "Профессии", Enabled = false },
+        new() { Key = "кнопка", Command = "say /parkour", Description = "Паркурист", Category = "Профессии", Enabled = false },
+        new() { Key = "кнопка", Command = "say /sec", Description = "Охранник", Category = "Профессии", Enabled = false },
+        new() { Key = "кнопка", Command = "say /bankir", Description = "Банкир", Category = "Профессии", Enabled = false },
+        new() { Key = "кнопка", Command = "say /bit", Description = "Битмайнер", Category = "Профессии", Enabled = false },
+        new() { Key = "кнопка", Command = "say /fishman", Description = "Рыбак", Category = "Профессии", Enabled = false },
+        new() { Key = "кнопка", Command = "say /hobo", Description = "Бездомный", Category = "Бездомные", Enabled = false },
+        new() { Key = "кнопка", Command = "say /hoboo", Description = "Глава бездомных", Category = "Бездомные", Enabled = false },
+        new() { Key = "кнопка", Command = "say /coop", Description = "Офицер полиции", Category = "Правопорядок", Enabled = false },
+        new() { Key = "кнопка", Command = "say /chief", Description = "Начальник полиции", Category = "Правопорядок", Enabled = false },
+        new() { Key = "кнопка", Command = "say /omon", Description = "Спецназ", Category = "Правопорядок", Enabled = false },
+        new() { Key = "кнопка", Command = "say /domon", Description = "Медик спецназа", Category = "Правопорядок", Enabled = false },
+        new() { Key = "кнопка", Command = "say /somon", Description = "Снайпер спецназа", Category = "Правопорядок", Enabled = false },
+        new() { Key = "кнопка", Command = "say /rspecnaz", Description = "Командир спецназа", Category = "Правопорядок", Enabled = false },
+        new() { Key = "кнопка", Command = "say /fbi", Description = "Агент FBI", Category = "Правопорядок", Enabled = false },
+        new() { Key = "кнопка", Command = "say /jaga", Description = "Джаггернаут", Category = "Правопорядок", Enabled = false },
+        new() { Key = "кнопка", Command = "say /mayor", Description = "Мэр", Category = "Правопорядок", Enabled = false },
+        new() { Key = "кнопка", Command = "say /narko", Description = "Гровер", Category = "Криминал", Enabled = false },
+        new() { Key = "кнопка", Command = "say /chemicgangster", Description = "Наркодилер", Category = "Криминал", Enabled = false },
+        new() { Key = "кнопка", Command = "say /murder", Description = "Маньяк", Category = "Криминал", Enabled = false },
+        new() { Key = "кнопка", Command = "say /killer", Description = "Наёмный убийца", Category = "Криминал", Enabled = false },
+        new() { Key = "кнопка", Command = "say /assasin", Description = "Ассасин", Category = "Криминал", Enabled = false },
+        new() { Key = "кнопка", Command = "say /gangster", Description = "Бандит", Category = "Криминал", Enabled = false },
+        new() { Key = "кнопка", Command = "say /mobboss", Description = "Глава бандитов", Category = "Криминал", Enabled = false },
+        new() { Key = "кнопка", Command = "say /egangster", Description = "Элитный бандит", Category = "Криминал", Enabled = false },
+        new() { Key = "кнопка", Command = "say /vor", Description = "Вор", Category = "Криминал", Enabled = false },
+        new() { Key = "кнопка", Command = "say /statvipvorom", Description = "Умелый вор", Category = "Криминал", Enabled = false },
+        new() { Key = "кнопка", Command = "say /shpion", Description = "Шпион", Category = "Криминал", Enabled = false },
+        new() { Key = "кнопка", Command = "say /grabitel", Description = "Грабитель", Category = "Криминал", Enabled = false },
+        new() { Key = "кнопка", Command = "say /hacker", Description = "Хакер", Category = "Криминал", Enabled = false },
+        new() { Key = "кнопка", Command = "say /zmlab2_MethCook", Description = "Варщик мета", Category = "Криминал", Enabled = false },
+        new() { Key = "кнопка", Command = "say /gundealer", Description = "Продавец оружия", Category = "Торговцы", Enabled = false },
+        new() { Key = "кнопка", Command = "say /medic", Description = "Врач", Category = "Торговцы", Enabled = false },
+        new() { Key = "кнопка", Command = "say /store", Description = "Торговец", Category = "Торговцы", Enabled = false },
+        new() { Key = "кнопка", Command = "say /cook", Description = "Повар", Category = "Торговцы", Enabled = false },
+        new() { Key = "кнопка", Command = "say /doge", Description = "Собака", Category = "Другие", Enabled = false },
+        new() { Key = "кнопка", Command = "say /nonrp", Description = "Администрация", Category = "Другие", Enabled = false },
         new() { Key = "кнопка", Command = "use tmp", Description = "Бинд на TMP", Category = "Оружие", Enabled = false },
         new() { Key = "кнопка", Command = "use spas 12", Description = "Бинд на SPAS-12", Category = "Оружие", Enabled = false },
         new() { Key = "кнопка", Command = "use weapon_shotgun", Description = "Дробовик (хорош на флагах)", Category = "Оружие", Enabled = false },
