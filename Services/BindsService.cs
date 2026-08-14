@@ -85,7 +85,7 @@ public sealed class BindsService
         new() { Key = "кнопка", Command = "use weapon_mad_2b", Description = "Катана", Category = "Оружие", Enabled = false },
         new() { Key = "кнопка", Command = "use m9k_barret_m82", Description = "Баретка", Category = "Оружие", Enabled = false },
         new() { Key = "кнопка", Command = "use itemstore_pickup", Description = "Инвентарь", Category = "Разное", Enabled = false },
-        new() { Key = "кнопка", Command = "say !spectate", Description = "Спек", Category = "Разное", Enabled = false }
+        new() { Key = "кнопка", Command = "say !spectate", Description = "Спек для админов", Category = "Админ", Enabled = false }
     ];
 
     public string? CfgDir()
@@ -185,6 +185,38 @@ public sealed class BindsService
         "stick1" or "stick2" or "pov_up" or "pov_down" or "pov_left" or "pov_right" => true,
         _ => false
     };
+
+    public (int Found, int Added) MergeScanned()
+    {
+        var found = ScanGameConfigs();
+        if (found.Count == 0) return (0, 0);
+
+        var known = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var b in Current)
+            known.Add(b.Command.Trim());
+
+        var added = 0;
+        var merged = new List<BindEntry>(Current);
+        foreach (var b in found)
+        {
+            if (known.Contains(b.Command.Trim())) continue;
+            known.Add(b.Command.Trim());
+            merged.Add(b);
+            added++;
+        }
+
+        if (added == 0) return (found.Count, 0);
+
+        Current = merged;
+        try
+        {
+            File.WriteAllText(_file, JsonSerializer.Serialize(merged, new JsonSerializerOptions { WriteIndented = true }));
+        }
+        catch { }
+
+        ApplyToCfg();
+        return (found.Count, added);
+    }
 
     public OperationResult Save(List<BindEntry> binds)
     {

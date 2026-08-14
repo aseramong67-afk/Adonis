@@ -29,6 +29,13 @@ try
 }
 catch { }
 
+// Автосканирование биндов из конфигов игры при каждом запуске.
+try
+{
+    app.Services.GetRequiredService<BindsService>().MergeScanned();
+}
+catch { }
+
 var reskinsRoot = Path.Combine(app.Environment.ContentRootPath, "addons-src");
 if (Directory.Exists(reskinsRoot))
 {
