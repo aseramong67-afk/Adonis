@@ -185,6 +185,8 @@ public sealed class BindsService
         new() { Key = "кнопка", Command = "use weapon_mad_2b", Description = "Катана", Category = "Оружие", Enabled = false },
         new() { Key = "кнопка", Command = "use m9k_barret_m82", Description = "Баретка", Category = "Оружие", Enabled = false },
         new() { Key = "кнопка", Command = "use itemstore_pickup", Description = "Инвентарь", Category = "Разное", Enabled = false },
+        new() { Key = "Z", Command = "gmod_undo", Description = "Отменить последнее действие", Category = "Разное", Enabled = false },
+        new() { Key = "кнопка", Command = "noclip", Description = "Ноклип (одиночная игра)", Category = "Разное", Enabled = false },
         new() { Key = "кнопка", Command = "say !spectate", Description = "Спек для админов", Category = "Админ", Enabled = false }
     ];
 
