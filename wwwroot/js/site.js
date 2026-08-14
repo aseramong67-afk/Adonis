@@ -752,7 +752,7 @@
       if (launchStatusEl) {
         launchStatusEl.textContent = count === 0
           ? "Ничего не выбрано — игра запустится без параметров."
-          : `Будет запущено с ${count} параметр(а/ов).`;
+          : `Будет запущено с ${count} ${count === 1 ? "параметром" : "параметрами"}.`;
         launchStatusEl.classList.toggle("good", count > 0);
       }
     } catch {
@@ -761,11 +761,9 @@
   }
 
   async function toggleLaunchOption(input) {
-    const key = input.dataset.key;
     const options = [...launchOptionsEl.querySelectorAll("input")]
-      .filter((i) => i !== input)
+      .filter((i) => i.checked)
       .map((i) => i.dataset.key);
-    if (input.checked) options.push(key);
     try {
       const res = await fetch("/api/game/launch", {
         method: "POST",
@@ -777,7 +775,7 @@
         const count = options.length;
         launchStatusEl.textContent = count === 0
           ? "Ничего не выбрано — игра запустится без параметров."
-          : `Будет запущено с ${count} параметр(а/ов).`;
+          : `Будет запущено с ${count} ${count === 1 ? "параметром" : "параметрами"}.`;
         launchStatusEl.classList.toggle("good", count > 0);
       }
     } catch {
