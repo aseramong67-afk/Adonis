@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace ReskinManager.Services;
 
@@ -101,6 +102,87 @@ public sealed class BindsService
         var gmod = Directory.GetParent(target)?.FullName;
         return gmod is null ? null : Path.Combine(gmod, "cfg");
     }
+
+    public List<BindEntry> ScanGameConfigs()
+    {
+        var cfgDir = CfgDir();
+        if (cfgDir is null || !Directory.Exists(cfgDir)) return [];
+
+        var found = new List<BindEntry>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        var files = Directory.GetFiles(cfgDir, "*.cfg")
+            .Where(f => !Path.GetFileName(f).Equals("adonis_binds.cfg", StringComparison.OrdinalIgnoreCase))
+            .Where(f => !Path.GetFileName(f).StartsWith("360controller", StringComparison.OrdinalIgnoreCase));
+
+        foreach (var file in files)
+        {
+            string[] lines;
+            try { lines = File.ReadAllLines(file); }
+            catch { continue; }
+
+            foreach (var raw in lines)
+            {
+                var line = raw.Trim();
+                if (line.Length == 0 || line.StartsWith("//")) continue;
+
+                var m = Regex.Match(line, @"^bind\s+([^\s]+)\s+(.+)$", RegexOptions.IgnoreCase);
+                if (!m.Success) continue;
+
+                var key = m.Groups[1].Value.Trim().Trim('"');
+                var command = m.Groups[2].Value.Trim().TrimEnd(';');
+                if (command.Length >= 2 && command[0] == '"' && command[^1] == '"')
+                    command = command.Substring(1, command.Length - 2).Trim();
+
+                if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(command)) continue;
+                if (IsSystemBind(command) || IsSystemKey(key)) continue;
+
+                var id = key + "\u0001" + command;
+                if (!seen.Add(id)) continue;
+
+                found.Add(new BindEntry
+                {
+                    Key = key,
+                    Command = command,
+                    Description = "",
+                    Category = "",
+                    Enabled = true,
+                    Favorite = false
+                });
+            }
+        }
+
+        return found;
+    }
+
+    private static bool IsSystemBind(string command)
+    {
+        var first = command.Split(' ', ';')[0].ToLowerInvariant();
+        if (first.Length == 0) return true;
+        if (first.StartsWith('+')) return true;
+        if (first.StartsWith("slot")) return true;
+        return first is "impulse" or "invnext" or "invprev" or "invlast"
+            or "messagemode" or "messagemode2" or "messagemode4" or "toggleconsole"
+            or "escape" or "jpeg" or "kill" or "disconnect" or "quit" or "pause"
+            or "save" or "load"
+            or "kp_next" or "kp_prev" or "kp_slot1" or "kp_slot2" or "kp_slot3"
+            or "kp_slot4" or "kp_slot5" or "kp_slot6" or "kp_slot7" or "kp_slot8"
+            or "kp_slot9" or "kp_slot10" or "kp_down" or "kp_up" or "kp_left" or "kp_right"
+            or "joy_use_forward" or "joy_use_back" or "joy_use_left" or "joy_use_right"
+            or "joy_attack" or "joy_attack2" or "joy_duck" or "joy_usesimple" or "joy_zoom"
+            or "menu_accept" or "menu_cancel" or "menu_left" or "menu_right" or "menu_up" or "menu_down"
+            or "showscores" or "showmap" or "showbriefing";
+    }
+
+    private static bool IsSystemKey(string key) => key.ToLowerInvariant() switch
+    {
+        "espace" or "escape" or "esc" => true,
+        "f1" or "f2" or "f3" or "f4" => true,
+        "mouse1" or "mouse2" or "mouse3" or "mouse4" or "mouse5" => true,
+        "joy1" or "joy2" or "joy3" or "joy4" or "joy5" or "joy6" or "joy7" or "joy8" or "joy9" or "joy10" => true,
+        "stick1" or "stick2" or "pov_up" or "pov_down" or "pov_left" or "pov_right" => true,
+        _ => false
+    };
 
     public OperationResult Save(List<BindEntry> binds)
     {

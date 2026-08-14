@@ -161,6 +161,12 @@ app.MapPost("/api/binds", (BindsService binds, List<BindEntry> list) =>
     return Results.Ok(new { ok = result.Ok, message = result.Message });
 });
 
+app.MapGet("/api/binds/scan", (BindsService binds) =>
+{
+    var found = binds.ScanGameConfigs();
+    return Results.Ok(new { ok = true, count = found.Count, binds = found });
+});
+
 // ---------- game optimization ----------
 
 app.MapGet("/api/game/optimization", (OptimizationService opt) =>

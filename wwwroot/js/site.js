@@ -877,6 +877,55 @@
   $("#btnSaveBinds").addEventListener("click", saveBinds);
   $("#btnSaveGame").addEventListener("click", () => $("#btnSaveBinds").click());
 
+  $("#btnScanBinds").addEventListener("click", async () => {
+    const btn = $("#btnScanBinds");
+    const old = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;margin:0;border-width:2px"></span>';
+    try {
+      const res = await fetch("/api/binds/scan");
+      const data = await res.json();
+      if (!data.ok) throw new Error("bad");
+      const found = Array.isArray(data.binds) ? data.binds : [];
+      if (!found.length) {
+        toast("В конфигах игры бинды не найдены", "info");
+        return;
+      }
+      const existing = new Set(bindsList.map((b) => (b.key.trim() + "\u0001" + b.command.trim()).toLowerCase()));
+      let added = 0;
+      for (const b of found) {
+        const key = (b.key || "").trim();
+        const cmd = (b.command || "").trim();
+        if (!key || !cmd) continue;
+        if (existing.has((key + "\u0001" + cmd).toLowerCase())) continue;
+        existing.add((key + "\u0001" + cmd).toLowerCase());
+        bindsList.push({
+          id: bindsList.length + 1,
+          key,
+          command: cmd,
+          description: b.description || "",
+          category: b.category || "",
+          enabled: b.enabled !== false,
+          favorite: b.favorite === true
+        });
+        added++;
+      }
+      if (added) {
+        originalBinds = bindsList.map(bindSnapshot);
+        renderFilters();
+        renderBinds();
+        toast(`Найдено ${found.length}, добавлено ${added} биндов из конфигов игры`, "ok");
+      } else {
+        toast(`Найдено ${found.length} — все уже есть в списке`, "info");
+      }
+    } catch {
+      toast("Не удалось отсканировать бинды", "err");
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = old;
+    }
+  });
+
   async function act(id, action) {
     const btn = grid.querySelector(`[data-action="${action}"][data-id="${escapeHtml(id)}"]`);
     if (btn) {
