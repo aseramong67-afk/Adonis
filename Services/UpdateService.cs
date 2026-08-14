@@ -189,8 +189,8 @@ public sealed class UpdateService
 
     private static int CompareVersions(string a, string b)
     {
-        var pa = a.Split('.').Select(s => int.TryParse(s, out var n) ? n : 0).ToArray();
-        var pb = b.Split('.').Select(s => int.TryParse(s, out var n) ? n : 0).ToArray();
+        var pa = a.Split('+')[0].Split('.').Select(s => int.TryParse(s, out var n) ? n : 0).ToArray();
+        var pb = b.Split('+')[0].Split('.').Select(s => int.TryParse(s, out var n) ? n : 0).ToArray();
         for (var i = 0; i < Math.Max(pa.Length, pb.Length); i++)
         {
             var x = i < pa.Length ? pa[i] : 0;
