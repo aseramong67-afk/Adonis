@@ -214,7 +214,7 @@
     try {
       const res = await fetch("/api/addons");
       let addons = await res.json();
-      const isReskin = (a) => (a.type || "").toLowerCase() === "reskin";
+      const isReskin = (a) => (a.type || "").toLowerCase() === "рескин";
       if (catalogFilter === "reskins") addons = addons.filter(isReskin);
       else addons = addons.filter((a) => !isReskin(a));
       grid.innerHTML = "";

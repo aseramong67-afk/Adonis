@@ -96,7 +96,7 @@ public sealed class AddonService
             Author = a.Author,
             AuthorAvatar = ToUrl(a.AuthorAvatar, a.Id),
             AddedAtText = FormatAddedAt(a.Id),
-            Type = a.Type,
+            Type = NormalizeType(a.Type),
             Tags = a.Tags,
             Description = a.Description,
             WorkshopUrl = a.WorkshopUrl,
@@ -150,7 +150,7 @@ public sealed class AddonService
                 Author = json.Author,
                 AuthorAvatar = json.AuthorAvatar,
                 AddedAtText = FormatAddedAt(id),
-                Type = json.Type,
+                Type = NormalizeType(json.Type),
                 Tags = json.Tags,
                 Description = json.Description,
                 WorkshopUrl = json.WorkshopUrl,
@@ -315,6 +315,16 @@ public sealed class AddonService
             unit++;
         }
         return $"{size:0.#} {units[unit]}";
+    }
+
+    private static string NormalizeType(string type)
+    {
+        if (string.IsNullOrWhiteSpace(type)) return "Аддон";
+        return type.Trim().ToLowerInvariant() switch
+        {
+            "reskin" or "рескин" => "Рескин",
+            _ => "Аддон"
+        };
     }
 
     private string FormatAddedAt(string id)
