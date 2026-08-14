@@ -91,6 +91,12 @@ app.MapGet("/api/update", async (UpdateService updater, bool force) =>
     });
 });
 
+app.MapGet("/api/update/changelog", async (UpdateService updater) =>
+{
+    var releases = await updater.GetPendingReleasesAsync();
+    return Results.Ok(new { current = updater.CurrentVersion, releases });
+});
+
 app.MapGet("/api/update/apply", async (UpdateService updater) =>
     await updater.PrepareAndApplyAsync());
 

@@ -12,6 +12,8 @@ public sealed record UpdateInfo(
     string ReleaseNotes = "",
     string AssetUrl = "");
 
+public sealed record ReleaseNote(string Version, string Name, string Notes);
+
 public sealed class UpdateService
 {
     private readonly GitHubOptions _gitHub;
@@ -171,6 +173,46 @@ public sealed class UpdateService
         catch (Exception ex)
         {
             return new OperationResult(false, "Ошибка обновления: " + ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Получает список всех релизов, которые новее текущей версии (от старых к новым),
+    /// с их описаниями. Нужен, чтобы показать пользователю изменения всех промежуточных версий.
+    /// </summary>
+    public async Task<List<ReleaseNote>> GetPendingReleasesAsync()
+    {
+        if (!IsConfigured) return [];
+
+        try
+        {
+            var url = $"https://api.github.com/repos/{_gitHub.Owner}/{_gitHub.Repo}/releases?per_page=100";
+            using var res = await _http.GetAsync(url);
+            if (!res.IsSuccessStatusCode) return [];
+
+            using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+            if (doc.RootElement.ValueKind != JsonValueKind.Array) return [];
+
+            var list = new List<ReleaseNote>();
+            foreach (var release in doc.RootElement.EnumerateArray())
+            {
+                var tag = release.TryGetProperty("tag_name", out var t) ? t.GetString() : "";
+                var name = release.TryGetProperty("name", out var n) ? n.GetString() : "";
+                var body = release.TryGetProperty("body", out var b) ? b.GetString() : "";
+
+                var version = Normalize(tag ?? "");
+                if (string.IsNullOrWhiteSpace(version)) continue;
+                if (CompareVersions(version, CurrentVersion) <= 0) continue;
+
+                list.Add(new ReleaseNote(version, name ?? "", body ?? ""));
+            }
+
+            list.Sort((x, y) => CompareVersions(x.Version, y.Version));
+            return list;
+        }
+        catch
+        {
+            return [];
         }
     }
 

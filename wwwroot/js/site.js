@@ -19,7 +19,7 @@
   }
   const grid = $("#addons");
   const searchInput = $("#search");
-  const targetPathEl = $("#targetPath");
+  let targetPathEl = $("#targetStatus");
   const statsEl = $("#stats");
   const loadingEl = $("#loading");
   const emptyEl = $("#empty");
@@ -184,7 +184,10 @@
     const btnAction = addon.isInstalled ? "uninstall" : "install";
 
     card.innerHTML = `
-      <div class="card-preview">${preview}${typeBadge}${installed}</div>
+      <div class="card-preview">
+        ${addon.workshopUrl ? `<button class="btn workshop-preview" type="button" title="Открыть в Steam Workshop" data-workshop="${escapeHtml(addon.workshopUrl)}">${icons.steam}</button>` : ""}
+        ${preview}${typeBadge}${installed}
+      </div>
       <div class="card-body">
         ${authorHtml}
         <h3>${escapeHtml(addon.title)}</h3>
@@ -197,7 +200,6 @@
           <span class="size">${escapeHtml(addon.sizeText)}</span>
         </span>
         <div class="card-actions">
-          ${addon.workshopUrl ? `<button class="btn workshop" type="button" title="Открыть в Steam Workshop" data-workshop="${escapeHtml(addon.workshopUrl)}">${icons.steam}</button>` : ""}
           <button class="${btnClass}" data-action="${btnAction}" data-id="${escapeHtml(addon.id)}">${btnIcon}${btnLabel}</button>
         </div>
       </div>`;
@@ -791,6 +793,7 @@
 
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !bindModal.classList.contains("hidden")) closeBindConstructor();
+    if (e.key === "Escape" && !($("#updateModal")?.classList.contains("hidden") ?? true)) closeUpdateModal();
   });
 
   bindKeyInput.addEventListener("input", updateBindPreview);
@@ -1105,9 +1108,14 @@
       const res = await fetch("/api/settings");
       const data = await res.json();
 
-      targetPathEl.textContent = data.targetPath || "Папка установки не задана";
-      targetPathEl.classList.toggle("bad", !!data.error);
-      targetPathEl.title = data.error ? data.error : "Папка установки";
+      const statusEl = targetPathEl ?? $("#targetStatus");
+      const fullPath = data.targetPath || "";
+      if (statusEl) {
+        statusEl.textContent = fullPath && !data.error ? "Найдено" : "Не найдено";
+        statusEl.classList.toggle("bad", !!data.error || !fullPath);
+        statusEl.title = fullPath || "Папка установки не найдена";
+      }
+      targetPathEl = statusEl;
       $("#targetPathInput").value = data.configuredPath || "";
 
       if (data.error && data.autoDetected) {
@@ -1330,7 +1338,78 @@
     } catch {}
   }
 
-  async function checkUpdate(force) {
+  function renderChangelog(releases) {
+    const container = $("#updateChanges");
+    if (!container) return;
+    container.innerHTML = releases.map((r) => `
+      <div class="update-change">
+        <div class="update-change-head">
+          <span class="update-change-ver">v${escapeHtml(r.version)}</span>
+          ${r.name ? `<span class="update-change-name">${escapeHtml(r.name)}</span>` : ""}
+        </div>
+        ${r.notes ? `<div class="update-change-body">${escapeHtml(r.notes)}</div>` : ""}
+      </div>`).join("");
+  }
+
+  function openUpdateModal(info) {
+    const modal = $("#updateModal");
+    if (!modal) return;
+    $("#updateModalSub").textContent = `Обновление v${info.currentVersion} → v${info.latestVersion}`;
+    $("#updateModalApply").onclick = async () => {
+      const btn = $("#updateModalApply");
+      btn.disabled = true;
+      setUpdateStatus("Загрузка обновления...");
+      try {
+        const res = await fetch("/api/update/apply");
+        const data = await res.json();
+        if (data.ok) {
+          updateScriptPath = data.data;
+          setUpdateStatus("Обновление загружено. Приложение будет перезапущено...");
+          setTimeout(async () => {
+            try {
+              await fetch("/api/update/restart", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(updateScriptPath)
+              });
+            } catch {}
+          }, 500);
+        } else {
+          setUpdateStatus(data.message || "Ошибка обновления.", true);
+          btn.disabled = false;
+        }
+      } catch {
+        setUpdateStatus("Ошибка загрузки обновления.", true);
+        btn.disabled = false;
+      }
+    };
+    modal.classList.remove("hidden");
+  }
+
+  function closeUpdateModal() {
+    $("#updateModal")?.classList.add("hidden");
+  }
+
+  function modalOverlayClick(selector, onClose) {
+    const el = document.querySelector(selector);
+    if (!el) return;
+    el.addEventListener("mousedown", (e) => {
+      if (e.target === el) onClose();
+    });
+  }
+
+  $("#updateModalLater").addEventListener("click", closeUpdateModal);
+  modalOverlayClick("#updateModal", closeUpdateModal);
+
+  async function loadChangelog() {
+    try {
+      const res = await fetch("/api/update/changelog");
+      const data = await res.json();
+      renderChangelog(data.releases || []);
+    } catch {}
+  }
+
+  async function checkUpdate(force, auto) {
     setUpdateStatus("Проверка...");
     try {
       const res = await fetch(`/api/update${force ? "?force=true" : ""}`);
@@ -1343,6 +1422,10 @@
         btn.innerHTML = `${icons.install}Обновить`;
         btn.classList.add("primary");
         btn.dataset.update = "1";
+        if (auto) {
+          await loadChangelog();
+          openUpdateModal(data);
+        }
       } else {
         setUpdateStatus(`Установлена актуальная версия v${data.currentVersion}.`);
         const btn = $("#btnCheckUpdate");
@@ -1393,5 +1476,5 @@
   loadAuth();
   loadTheme();
   loadVersion();
-  checkUpdate(false);
+  checkUpdate(false, true);
 })();
