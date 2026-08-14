@@ -43,7 +43,11 @@ public sealed class UpdateService
         {
             var asm = typeof(UpdateService).Assembly;
             var info = FileVersionInfo.GetVersionInfo(asm.Location);
-            if (!string.IsNullOrWhiteSpace(info.ProductVersion)) return info.ProductVersion;
+            if (!string.IsNullOrWhiteSpace(info.ProductVersion))
+            {
+                var v = info.ProductVersion.Split('+')[0].Trim();
+                if (!string.IsNullOrWhiteSpace(v)) return v;
+            }
         }
         catch { }
         return "1.0.0";
