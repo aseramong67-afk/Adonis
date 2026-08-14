@@ -40,6 +40,46 @@
 
                                   ],
                        "sizeBytes":  1082582
+                   },
+                   {
+                       "id":  "cs_go_ak47_neo_noir_888448482",
+                       "title":  "Ковбойка",
+                       "author":  "Godzz",
+                       "authorAvatar":  "avatars/godzz.png",
+                       "type":  "reskin",
+                       "tags":  [
+                                    "weapon",
+                                    "pistol",
+                                    "ковбойка"
+                                ],
+                       "description":  "Рескин оружия ковбойки",
+                       "workshopUrl":  "https://steamcommunity.com/sharedfiles/filedetails/?id=888448482",
+                       "preview":  "previews/cs_go_ak47_neo_noir_888448482.png",
+                       "archive":  "zips/cs_go_ak47_neo_noir_888448482.zip",
+                       "ignore":  [
+
+                                  ],
+                       "sizeBytes":  7122310
+                   },
+                   {
+                       "id":  "dlor_wonder",
+                       "title":  "Dlor Wonder",
+                       "author":  "Godzz",
+                       "authorAvatar":  "avatars/godzz.png",
+                       "type":  "reskin",
+                       "tags":  [
+                                    "weapon",
+                                    "sniper",
+                                    "awp"
+                                ],
+                       "description":  "Рескин снайперской винтовки Dlor Wonder",
+                       "workshopUrl":  null,
+                       "preview":  "previews/dlor_wonder.png",
+                       "archive":  "zips/dlor_wonder.zip",
+                       "ignore":  [
+
+                                  ],
+                       "sizeBytes":  7199307
                    }
                ]
 }
