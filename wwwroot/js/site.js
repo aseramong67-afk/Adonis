@@ -606,7 +606,7 @@
       renderOptRows(Array.isArray(data.options) ? data.options : []);
       optToggle.checked = !!data.applied;
       setOptBadge(data.applied);
-      optRows.classList.toggle("hidden", !data.applied);
+      optRows.classList.remove("hidden");
       if (!data.path) {
         optStatus.textContent = "Укажите папку установки аддонов в настройках.";
         optStatus.classList.remove("good");
@@ -664,7 +664,6 @@
         optStatus.textContent = data.applied ? "Применяется при запуске игры." : "Не применён.";
         optStatus.classList.toggle("good", !!data.applied);
         setOptBadge(data.applied);
-        optRows.classList.toggle("hidden", !data.applied);
       } else {
         toast(data.message || "Ошибка применения", "err");
         optToggle.checked = !on;
