@@ -70,7 +70,19 @@ app.Use(async (ctx, next) =>
 app.MapGet("/api/addons", async (AddonService svc) => await svc.GetAddons());
 
 app.MapGet("/api/update", async (UpdateService updater, bool force) =>
-    await updater.CheckForUpdateAsync(force));
+{
+    var info = await updater.CheckForUpdateAsync(force);
+    return Results.Json(new
+    {
+        info.HasUpdate,
+        info.CurrentVersion,
+        info.LatestVersion,
+        info.ReleaseName,
+        info.ReleaseNotes,
+        info.AssetUrl,
+        error = updater.LastError
+    });
+});
 
 app.MapGet("/api/update/apply", async (UpdateService updater) =>
     await updater.PrepareAndApplyAsync());

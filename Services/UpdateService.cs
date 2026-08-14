@@ -29,6 +29,8 @@ public sealed class UpdateService
 
     public string CurrentVersion { get; } = GetCurrentVersion();
 
+    public string? LastError { get; private set; }
+
     public UpdateService(IWebHostEnvironment env, IConfiguration config)
     {
         _env = env;
@@ -60,7 +62,10 @@ public sealed class UpdateService
             var url = $"https://api.github.com/repos/{_gitHub.Owner}/{_gitHub.Repo}/releases/latest";
             using var res = await _http.GetAsync(url);
             if (!res.IsSuccessStatusCode)
+            {
+                LastError = $"HTTP {(int)res.StatusCode} {res.ReasonPhrase}";
                 return new UpdateInfo(false, CurrentVersion, CurrentVersion);
+            }
 
             using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
             var root = doc.RootElement;
@@ -89,8 +94,9 @@ public sealed class UpdateService
 
             return new UpdateInfo(hasUpdate, CurrentVersion, latest, name ?? "", body ?? "", assetUrl);
         }
-        catch
+        catch (Exception ex)
         {
+            LastError = ex.GetType().Name + ": " + ex.Message;
             return new UpdateInfo(false, CurrentVersion, CurrentVersion);
         }
     }
