@@ -7,7 +7,7 @@ $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 
-$exclude = @("auth.json", "binds.json", "sessions.json", "settings.json", "Adonis.pdb", "web.config", "appsettings.Development.json")
+$exclude = @("binds.json", "sessions.json", "settings.json", "Adonis.pdb", "web.config", "appsettings.Development.json")
 
 if (Test-Path -LiteralPath $ZipPath) { Remove-Item -LiteralPath $ZipPath -Force }
 
