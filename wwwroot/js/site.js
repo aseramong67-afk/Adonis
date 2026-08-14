@@ -382,6 +382,7 @@
 
   function renderBinds() {
     sortBinds();
+    renderFilters();
     const container = $("#binds");    container.innerHTML = "";
     let shown = 0;
     bindsList.forEach((b, i) => {
