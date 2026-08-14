@@ -179,7 +179,7 @@ public sealed class AddonService
             {
                 var archive = string.IsNullOrWhiteSpace(addon.Archive) ? $"{id}.zip" : addon.Archive;
                 var url = $"{RawBase}/reskins/{archive}";
-                var zipPath = Path.Combine(tmpDir, archive);
+                var zipPath = Path.Combine(tmpDir, Path.GetFileName(archive));
 
                 var bytes = await _http.GetByteArrayAsync(url);
                 await File.WriteAllBytesAsync(zipPath, bytes);
