@@ -326,6 +326,7 @@
   function sortBinds() {
     const ranked = bindsList.map((b, i) => ({ i, b }));
     ranked.sort((x, y) => {
+      if (x.b.enabled !== y.b.enabled) return x.b.enabled ? -1 : 1;
       const r = rankBind(x.b) - rankBind(y.b);
       if (r !== 0) return r;
       const gx = GROUP_ORDER.indexOf((x.b.group || "").trim());
