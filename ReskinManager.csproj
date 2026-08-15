@@ -9,8 +9,8 @@
     <AssemblyName>Adonis</AssemblyName>
     <AssemblyTitle>Adonis</AssemblyTitle>
     <Product>Adonis</Product>
-    <Version>1.6.19</Version>
-    <InformationalVersion>1.6.19</InformationalVersion>
+    <Version>1.7.0</Version>
+    <InformationalVersion>1.7.0</InformationalVersion>
     <ApplicationIcon>app.ico</ApplicationIcon>
     <NoWarn>$(NoWarn);MSB3277</NoWarn>
   </PropertyGroup>
@@ -21,6 +21,13 @@
 
   <ItemGroup>
     <Content Update="auth.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Setup\**" />
+    <Content Remove="Setup\**" />
+    <None Remove="Setup\**" />
+    <EmbeddedResource Remove="Setup\**" />
   </ItemGroup>
 
   <ItemGroup>
