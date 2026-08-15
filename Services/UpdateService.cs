@@ -61,6 +61,16 @@ public sealed class UpdateService
     private bool IsConfigured =>
         !string.IsNullOrWhiteSpace(_gitHub.Owner) && !string.IsNullOrWhiteSpace(_gitHub.Repo);
 
+    /// <summary>
+    /// Single-file (self-contained) сборка не содержит runtimeconfig.json рядом с exe.
+    /// Portable-версия должна обновляться только из portable-ассета, иначе она заменит
+    /// себя обычной версией, которая без установленного .NET не запустится.
+    /// </summary>
+    private bool IsPortable =>
+        !File.Exists(Path.Combine(AppContext.BaseDirectory, $"{typeof(UpdateService).Assembly.GetName().Name}.runtimeconfig.json"));
+
+    private string ExpectedAssetPrefix => IsPortable ? "Adonis-portable-" : _gitHub.ReleaseAsset;
+
     public async Task<UpdateInfo> CheckForUpdateAsync(bool force = false)
     {
         if (!IsConfigured)
@@ -92,7 +102,8 @@ public sealed class UpdateService
                 foreach (var asset in assets.EnumerateArray())
                 {
                     if (asset.TryGetProperty("name", out var an) &&
-                        an.GetString()?.Equals(_gitHub.ReleaseAsset, StringComparison.OrdinalIgnoreCase) == true &&
+                        an.GetString()?.StartsWith(ExpectedAssetPrefix, StringComparison.OrdinalIgnoreCase) == true &&
+                        an.GetString()?.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) == true &&
                         asset.TryGetProperty("browser_download_url", out var au))
                     {
                         assetUrl = au.GetString() ?? "";
