@@ -72,12 +72,6 @@
           <input id="search" type="search" placeholder="Поиск аддона..." autocomplete="off">
         </div>
         <div class="stats" id="stats"></div>
-        <div class="toolbar-side">
-          <button class="btn" id="btnUploadAddon" type="button" title="Опубликовать аддон в общий каталог" style="display:none">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            Загрузить аддон
-          </button>
-        </div>
       </section>
 
       <div id="addons" class="addons"></div>
@@ -390,75 +384,6 @@
 
   <div id="lightbox" class="lightbox hidden">
     <img src="" alt="Просмотр">
-  </div>
-
-  <div id="uploadModal" class="modal-overlay hidden">
-    <div class="modal upload-modal">
-      <h2>Загрузить аддон в каталог</h2>
-      <p class="section-desc">Аддон появится у всех пользователей Adonis. Требуется токен GitHub с доступом к репозиторию (настраивается ниже).</p>
-
-      <div class="upload-grid">
-        <div class="modal-field">
-          <label>Название *</label>
-          <input id="upTitle" type="text" placeholder="Ковбойка рескин" spellcheck="false" autocomplete="off">
-        </div>
-        <div class="modal-field">
-          <label>Автор</label>
-          <input id="upAuthor" type="text" placeholder="Godzz" spellcheck="false" autocomplete="off">
-        </div>
-        <div class="modal-field">
-          <label>Тип</label>
-          <select id="upType">
-            <option value="reskin">Рескин</option>
-            <option value="addon">Аддон</option>
-          </select>
-        </div>
-        <div class="modal-field">
-          <label>Ссылка на Workshop</label>
-          <input id="upWorkshop" type="text" placeholder="https://steamcommunity.com/sharedfiles/filedetails/?id=..." spellcheck="false" autocomplete="off">
-        </div>
-      </div>
-
-      <div class="modal-field">
-        <label>Описание</label>
-        <input id="upDesc" type="text" placeholder="Короткое описание аддона" spellcheck="false" autocomplete="off">
-      </div>
-
-      <div class="modal-field">
-        <label>Теги (через запятую)</label>
-        <input id="upTags" type="text" placeholder="weapon, pistol, ковбойка" spellcheck="false" autocomplete="off">
-      </div>
-
-      <div class="upload-files">
-        <label class="upload-box" id="upZipBox">
-          <input id="upZip" type="file" accept=".zip">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          <span id="upZipName">Архив аддона (.zip) *</span>
-        </label>
-        <label class="upload-box" id="upPreviewBox">
-          <input id="upPreview" type="file" accept=".png,.jpg,.jpeg,.webp">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-          <span id="upPreviewName">Превью (картинка)</span>
-        </label>
-      </div>
-
-      <div class="upload-token">
-        <div class="modal-field">
-          <label>Токен GitHub (для публикации)</label>
-          <input id="upToken" type="password" placeholder="ghp_..." spellcheck="false" autocomplete="off">
-        </div>
-        <button class="btn" id="btnSaveToken" type="button">Сохранить токен</button>
-      </div>
-      <p class="hint" id="uploadTokenHint"></p>
-
-      <div class="modal-actions">
-        <button class="btn ghost" id="upCancel" type="button">Отмена</button>
-        <button class="btn primary" id="upSubmit" type="button">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          Опубликовать
-        </button>
-      </div>
-    </div>
   </div>
 
   <div id="updateModal" class="modal-overlay update-overlay hidden">
