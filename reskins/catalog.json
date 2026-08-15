@@ -41,12 +41,12 @@
                                   ],
                        "sizeBytes":  1082582
                    },
-                   {
-                       "id":  "cs_go_ak47_neo_noir_888448482",
-                       "title":  "Ковбойка",
-                       "author":  "Godzz",
-                       "authorAvatar":  "avatars/godzz.png",
-                       "type":  "reskin",
+                    {
+                        "id":  "cs_go_ak47_neo_noir_888448482",
+                        "title":  "Ковбойка",
+                        "author":  "zimmer",
+                        "authorAvatar":  "avatars/zimmer.png",
+                        "type":  "reskin",
                        "tags":  [
                                     "weapon",
                                     "pistol",
