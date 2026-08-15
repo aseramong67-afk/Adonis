@@ -1,6 +1,6 @@
 {
     "version":  "1",
-    "updatedAt":  "2026-08-14",
+    "updatedAt":  "2026-08-15",
     "addons":  [
                    {
                        "id":  "aroblox-eblan",
@@ -61,25 +61,45 @@
                                   ],
                        "sizeBytes":  7122310
                    },
-                   {
-                       "id":  "dlor_wonder",
-                       "title":  "Dlor Wonder",
-                       "author":  "Godzz",
-                       "authorAvatar":  "avatars/godzz.png",
-                       "type":  "reskin",
-                       "tags":  [
+                    {
+                        "id":  "dlor_wonder",
+                        "title":  "Dlor Wonder",
+                        "author":  "Godzz",
+                        "authorAvatar":  "avatars/godzz.png",
+                        "type":  "reskin",
+                        "tags":  [
                                     "weapon",
                                     "sniper",
                                     "awp"
                                 ],
-                       "description":  "Рескин снайперской винтовки Dlor Wonder",
-                       "workshopUrl":  null,
-                       "preview":  "previews/dlor_wonder.png",
-                       "archive":  "zips/dlor_wonder.zip",
-                       "ignore":  [
+                        "description":  "Рескин снайперской винтовки Dlor Wonder",
+                        "workshopUrl":  null,
+                        "preview":  "previews/dlor_wonder.png",
+                        "archive":  "zips/dlor_wonder.zip",
+                        "ignore":  [
 
                                   ],
-                       "sizeBytes":  7199307
-                   }
-               ]
+                        "sizeBytes":  7199307
+                    },
+                    {
+                        "id":  "elitka_godz",
+                        "title":  "Элитка",
+                        "author":  "Godzz",
+                        "authorAvatar":  "avatars/godzz.png",
+                        "type":  "reskin",
+                        "tags":  [
+                                    "model",
+                                    "mafia",
+                                    "элитка"
+                                ],
+                        "description":  "Модель элитки (мафия) с маской Гоустфейса",
+                        "workshopUrl":  null,
+                        "preview":  "previews/elitka_godz.png",
+                        "archive":  "zips/elitka_godz.zip",
+                        "ignore":  [
+
+                                  ],
+                        "sizeBytes":  8331106
+                    }
+                ]
 }
