@@ -1035,22 +1035,27 @@
 
   async function act(id, action) {
     const btn = grid.querySelector(`[data-action="${action}"][data-id="${escapeHtml(id)}"]`);
-    if (btn) {
-      btn.disabled = true;
-      const old = btn.innerHTML;
-      btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;margin:0;border-width:2px"></span>';
-      try {
-        const res = await fetch(`/api/addons/${encodeURIComponent(id)}/${action}`, { method: "POST" });
-        const data = await res.json();
-        if (data.ok) toast(data.message, "ok");
-        else toast(data.message, "err");
-      } catch {
-        toast("Ошибка соединения с сервером", "err");
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = old;
-        loadAddons();
-      }
+    if (!btn) return;
+    const card = btn.closest(".card");
+    const isInstall = action === "install";
+    btn.disabled = true;
+    const old = btn.innerHTML;
+    btn.classList.add("busy");
+    if (card) card.classList.add("installing");
+    btn.innerHTML = `<span class="btn-spinner"></span>${isInstall ? "Установка..." : "Удаление..."}`;
+    try {
+      const res = await fetch(`/api/addons/${encodeURIComponent(id)}/${action}`, { method: "POST" });
+      const data = await res.json();
+      if (data.ok) toast(data.message, "ok");
+      else toast(data.message, "err");
+    } catch {
+      toast("Ошибка соединения с сервером", "err");
+    } finally {
+      btn.disabled = false;
+      btn.classList.remove("busy");
+      if (card) card.classList.remove("installing");
+      btn.innerHTML = old;
+      loadAddons();
     }
   }
 

@@ -9,8 +9,8 @@
     <AssemblyName>Adonis</AssemblyName>
     <AssemblyTitle>Adonis</AssemblyTitle>
     <Product>Adonis</Product>
-    <Version>1.6.14</Version>
-    <InformationalVersion>1.6.14</InformationalVersion>
+    <Version>1.6.15</Version>
+    <InformationalVersion>1.6.15</InformationalVersion>
     <ApplicationIcon>app.ico</ApplicationIcon>
     <NoWarn>$(NoWarn);MSB3277</NoWarn>
   </PropertyGroup>

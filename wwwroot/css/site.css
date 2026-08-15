@@ -720,6 +720,40 @@ body {
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
+.btn-spinner {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.btn.primary .btn-spinner { border-color: rgba(0, 0, 0, 0.2); border-top-color: currentColor; }
+
+.btn.busy { cursor: wait; opacity: 0.9; }
+
+.card.installing {
+  position: relative;
+  pointer-events: none;
+}
+
+.card.installing::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: rgba(6, 6, 8, 0.4);
+  backdrop-filter: blur(1.5px);
+  border-radius: inherit;
+  animation: fade-in 0.2s ease both;
+}
+
+.card.installing .card-actions .btn.busy { animation: none; }
+
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+
 /* ---------- nav ---------- */
 
 .nav {
