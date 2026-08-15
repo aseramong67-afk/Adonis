@@ -1,495 +1,251 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
+using Microsoft.Web.WebView2.WinForms;
 
 namespace AdonisSetup;
 
-internal sealed class SetupForm : Form
+[ComVisible(true)]
+[ClassInterface(ClassInterfaceType.AutoDual)]
+public sealed class SetupBridge
 {
-    private readonly TextBox _pathBox;
-    private readonly Button _browseBtn;
-    private readonly Button _installBtn;
-    private readonly Button _reinstallBtn;
-    private readonly Button _uninstallBtn;
-    private readonly Button _launchBtn;
-    private readonly CheckBox _shortcutChk;
-    private readonly CheckBox _keepDataChk;
-    private readonly ProgressBar _progress;
-    private readonly Label _status;
-    private readonly Label _versionLabel;
-    private readonly Label _stateLabel;
+    [DllImport("user32.dll")]
+    private static extern bool ReleaseCapture();
 
-    private string? _installedDir;
+    [DllImport("user32.dll")]
+    private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+
+    private const int WM_NCLBUTTONDOWN = 0x00A1;
+    private const int HTCAPTION = 0x0002;
+
+    private readonly SetupForm _form;
+
+    public SetupBridge(SetupForm form) => _form = form;
+
+    public string GetState()
+    {
+        var dir = InstallerCore.InstalledDir();
+        return System.Text.Json.JsonSerializer.Serialize(new
+        {
+            installed = dir is not null,
+            installDir = dir ?? "",
+            defaultDir = InstallerCore.DefaultInstallDir,
+            dataDir = InstallerCore.DataDir
+        });
+    }
+
+    public string BrowseFolder()
+    {
+        return _form.PickFolder();
+    }
+
+    public void BeginDrag()
+    {
+        ReleaseCapture();
+        SendMessage(_form.Handle, WM_NCLBUTTONDOWN, new IntPtr(HTCAPTION), IntPtr.Zero);
+    }
+
+    public void Minimize() => _form.WindowState = FormWindowState.Minimized;
+
+    public void Close() => _form.Close();
+
+    public void Install(string dir) => _form.StartInstall(dir);
+
+    public void Reinstall(string dir) => _form.StartReinstall(dir);
+
+    public void Uninstall(bool keepData) => _form.StartUninstall(keepData);
+
+    public void Launch() => _form.LaunchApp();
+}
+
+public sealed class SetupForm : Form
+{
+    private readonly WebView2 _webView = new();
 
     public SetupForm()
     {
         Text = "Adonis Setup";
-        Font = new Font("Segoe UI", 9.5f);
-        ClientSize = new Size(560, 470);
+        FormBorderStyle = FormBorderStyle.None;
+        ClientSize = new Size(760, 560);
+        MinimumSize = new Size(700, 520);
         StartPosition = FormStartPosition.CenterScreen;
-        FormBorderStyle = FormBorderStyle.FixedDialog;
-        MaximizeBox = false;
-        MinimizeBox = false;
         BackColor = Color.FromArgb(11, 11, 13);
-        ForeColor = Color.FromArgb(232, 232, 236);
-        Icon = ExtractIcon();
-        AutoScaleMode = AutoScaleMode.Dpi;
-        ShowInTaskbar = true;
 
-        // фон в точку, как в основной программе
-        BackgroundImage = CreateDotPattern();
-        BackgroundImageLayout = ImageLayout.Tile;
+        _webView.Dock = DockStyle.Fill;
+        _webView.DefaultBackgroundColor = Color.FromArgb(11, 11, 13);
+        Controls.Add(_webView);
 
-        var title = new Label
+        Load += async (_, _) =>
         {
-            Text = "Adonis",
-            Font = new Font("Segoe UI", 20f, FontStyle.Bold),
-            ForeColor = Color.FromArgb(255, 159, 28),
-            Location = new Point(28, 20),
-            AutoSize = true
+            try
+            {
+                await _webView.EnsureCoreWebView2Async();
+                _webView.CoreWebView2.Settings.AreDevToolsEnabled = false;
+                _webView.CoreWebView2.AddHostObjectToScript("setupBridge", new SetupBridge(this));
+
+                var html = LoadEmbeddedHtml();
+                _webView.CoreWebView2.NavigateToString(html);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "Не удалось инициализировать WebView2. Убедитесь, что установлен WebView2 Runtime.\n\n" + ex.Message,
+                    "Adonis Setup", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Close();
+            }
         };
-
-        var subtitle = new Label
-        {
-            Text = "Помощник для Garry's Mod — бинды, рескины, настройки.",
-            ForeColor = Color.FromArgb(140, 140, 148),
-            Location = new Point(28, 60),
-            AutoSize = true
-        };
-
-        _versionLabel = new Label
-        {
-            Text = "Проверка версий…",
-            ForeColor = Color.FromArgb(140, 140, 148),
-            Location = new Point(28, 86),
-            AutoSize = true
-        };
-
-        // панель состояния установки
-        _stateLabel = new Label
-        {
-            Text = "Проверка состояния…",
-            ForeColor = Color.FromArgb(232, 232, 236),
-            Location = new Point(28, 118),
-            AutoSize = true,
-            Font = new Font("Segoe UI", 9.5f, FontStyle.Bold)
-        };
-
-        var divider = new Panel
-        {
-            BackColor = Color.FromArgb(38, 38, 43),
-            Location = new Point(28, 150),
-            Size = new Size(504, 1)
-        };
-
-        var pathLabel = new Label
-        {
-            Text = "ПАПКА УСТАНОВКИ",
-            ForeColor = Color.FromArgb(95, 95, 105),
-            Location = new Point(28, 166),
-            AutoSize = true,
-            Font = new Font("Segoe UI", 8.5f, FontStyle.Bold)
-        };
-
-        _pathBox = new TextBox
-        {
-            Location = new Point(28, 188),
-            Width = 400,
-            Text = InstallerCore.DefaultInstallDir,
-            BackColor = Color.FromArgb(19, 19, 22),
-            ForeColor = Color.FromArgb(232, 232, 236),
-            BorderStyle = BorderStyle.FixedSingle,
-            Font = new Font("Segoe UI", 9.5f)
-        };
-
-        _browseBtn = new Button
-        {
-            Text = "Обзор…",
-            Location = new Point(438, 187),
-            Size = new Size(94, 28),
-            BackColor = Color.FromArgb(26, 26, 30),
-            ForeColor = Color.FromArgb(232, 232, 236),
-            FlatStyle = FlatStyle.Flat,
-            Cursor = Cursors.Hand
-        };
-        _browseBtn.FlatAppearance.BorderColor = Color.FromArgb(58, 58, 65);
-        _browseBtn.FlatAppearance.MouseOverBackColor = Color.FromArgb(35, 35, 41);
-        _browseBtn.Click += Browse_Click;
-
-        _shortcutChk = new CheckBox
-        {
-            Text = "Создать ярлык на рабочем столе",
-            Location = new Point(28, 228),
-            AutoSize = true,
-            Checked = true,
-            ForeColor = Color.FromArgb(200, 200, 208)
-        };
-
-        _keepDataChk = new CheckBox
-        {
-            Text = "При удалении сохранять данные (бинды, настройки)",
-            Location = new Point(28, 254),
-            AutoSize = true,
-            Checked = true,
-            ForeColor = Color.FromArgb(200, 200, 208)
-        };
-
-        _installBtn = MakePrimaryButton("Установить", 28, 300);
-        _installBtn.Click += Install_Click;
-
-        _reinstallBtn = MakeGhostButton("Переустановить", 210, 300);
-        _reinstallBtn.Click += Reinstall_Click;
-
-        _uninstallBtn = MakeDangerButton("Удалить", 392, 300);
-        _uninstallBtn.Click += Uninstall_Click;
-
-        _launchBtn = MakeGhostButton("Запустить Adonis", 28, 354);
-        _launchBtn.Click += Launch_Click;
-
-        _progress = new ProgressBar
-        {
-            Location = new Point(28, 410),
-            Width = 504,
-            Height = 6,
-            Style = ProgressBarStyle.Continuous,
-            BackColor = Color.FromArgb(26, 26, 30),
-            ForeColor = Color.FromArgb(255, 159, 28)
-        };
-
-        _status = new Label
-        {
-            Text = "",
-            ForeColor = Color.FromArgb(160, 160, 170),
-            Location = new Point(28, 428),
-            AutoSize = true
-        };
-
-        Controls.Add(title);
-        Controls.Add(subtitle);
-        Controls.Add(_versionLabel);
-        Controls.Add(_stateLabel);
-        Controls.Add(divider);
-        Controls.Add(pathLabel);
-        Controls.Add(_pathBox);
-        Controls.Add(_browseBtn);
-        Controls.Add(_shortcutChk);
-        Controls.Add(_keepDataChk);
-        Controls.Add(_installBtn);
-        Controls.Add(_reinstallBtn);
-        Controls.Add(_uninstallBtn);
-        Controls.Add(_launchBtn);
-        Controls.Add(_progress);
-        Controls.Add(_status);
-
-        _reinstallBtn.Visible = false;
-        _uninstallBtn.Visible = false;
-        _launchBtn.Visible = false;
-
-        Shown += SetupForm_Shown;
     }
 
-    private static Image CreateDotPattern()
+    public string PickFolder()
     {
-        var bmp = new Bitmap(22, 22);
-        using var g = Graphics.FromImage(bmp);
-        g.Clear(Color.FromArgb(11, 11, 13));
-        g.FillEllipse(new SolidBrush(Color.FromArgb(24, 24, 27)), 10, 10, 2, 2);
-        return bmp;
+        string result = "";
+        Invoke(() =>
+        {
+            using var dialog = new FolderBrowserDialog();
+            dialog.Description = "Выберите папку установки Adonis";
+            var installed = InstallerCore.InstalledDir();
+            if (!string.IsNullOrEmpty(installed) && Directory.Exists(installed))
+                dialog.SelectedPath = installed;
+            else if (Directory.Exists(InstallerCore.DefaultInstallDir))
+                dialog.SelectedPath = InstallerCore.DefaultInstallDir;
+
+            if (dialog.ShowDialog(this) == DialogResult.OK)
+                result = dialog.SelectedPath;
+        });
+        return result;
     }
 
-    private Button MakePrimaryButton(string text, int x, int y)
+    public async void StartInstall(string dir)
     {
-        var btn = new Button
-        {
-            Text = text,
-            Location = new Point(x, y),
-            Size = new Size(170, 40),
-            BackColor = Color.FromArgb(255, 159, 28),
-            ForeColor = Color.FromArgb(20, 20, 24),
-            FlatStyle = FlatStyle.Flat,
-            Font = new Font("Segoe UI", 10.5f, FontStyle.Bold),
-            Cursor = Cursors.Hand
-        };
-        btn.FlatAppearance.BorderColor = Color.FromArgb(217, 135, 24);
-        btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(255, 178, 74);
-        btn.FlatAppearance.MouseDownBackColor = Color.FromArgb(235, 143, 22);
-        return btn;
-    }
-
-    private Button MakeGhostButton(string text, int x, int y)
-    {
-        var btn = new Button
-        {
-            Text = text,
-            Location = new Point(x, y),
-            Size = new Size(170, 40),
-            BackColor = Color.FromArgb(26, 26, 30),
-            ForeColor = Color.FromArgb(232, 232, 236),
-            FlatStyle = FlatStyle.Flat,
-            Font = new Font("Segoe UI", 10f),
-            Cursor = Cursors.Hand
-        };
-        btn.FlatAppearance.BorderColor = Color.FromArgb(58, 58, 65);
-        btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(35, 35, 41);
-        btn.FlatAppearance.MouseDownBackColor = Color.FromArgb(30, 30, 35);
-        return btn;
-    }
-
-    private Button MakeDangerButton(string text, int x, int y)
-    {
-        var btn = new Button
-        {
-            Text = text,
-            Location = new Point(x, y),
-            Size = new Size(140, 40),
-            BackColor = Color.FromArgb(26, 26, 30),
-            ForeColor = Color.FromArgb(248, 113, 113),
-            FlatStyle = FlatStyle.Flat,
-            Font = new Font("Segoe UI", 10f, FontStyle.Bold),
-            Cursor = Cursors.Hand
-        };
-        btn.FlatAppearance.BorderColor = Color.FromArgb(140, 70, 70);
-        btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(45, 28, 28);
-        btn.FlatAppearance.MouseDownBackColor = Color.FromArgb(38, 24, 24);
-        return btn;
-    }
-
-    private static Icon? ExtractIcon()
-    {
-        try
-        {
-            var stream = typeof(SetupForm).Assembly.GetManifestResourceStream("AdonisSetup.app.ico");
-            return stream is null ? null : new Icon(stream);
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    private async void SetupForm_Shown(object? sender, EventArgs e)
-    {
-        RefreshState();
-        await CheckVersionAsync();
-    }
-
-    private async Task CheckVersionAsync()
-    {
-        try
-        {
-            var asset = await InstallerCore.FindLatestAssetAsync();
-            _versionLabel.Text = asset is null
-                ? "Не удалось получить список версий."
-                : "Доступная версия: " + asset.Name.Replace("Adonis-portable-", "").Replace("-win-x64.zip", "");
-        }
-        catch (Exception ex)
-        {
-            _versionLabel.Text = "Ошибка проверки версий: " + ex.Message;
-        }
-    }
-
-    private void RefreshState()
-    {
-        _installedDir = InstallerCore.InstalledDir();
-        if (_installedDir is not null)
-        {
-            _stateLabel.Text = "✓ Установлено";
-            _stateLabel.ForeColor = Color.FromArgb(74, 222, 128);
-            _status.Text = "Установлено в: " + _installedDir;
-            _pathBox.Text = _installedDir;
-            _installBtn.Text = "Обновить";
-            _reinstallBtn.Visible = true;
-            _uninstallBtn.Visible = true;
-            _launchBtn.Visible = true;
-        }
-        else
-        {
-            _stateLabel.Text = "○ Не установлено";
-            _stateLabel.ForeColor = Color.FromArgb(140, 140, 148);
-            _status.Text = "Adonis не установлен.";
-            _pathBox.Text = InstallerCore.DefaultInstallDir;
-            _installBtn.Text = "Установить";
-            _reinstallBtn.Visible = false;
-            _uninstallBtn.Visible = false;
-            _launchBtn.Visible = false;
-        }
-    }
-
-    private void Browse_Click(object? sender, EventArgs e)
-    {
-        using var dialog = new FolderBrowserDialog();
-        dialog.Description = "Выберите папку установки Adonis";
-        if (_pathBox.Text.Length > 0 && Directory.Exists(_pathBox.Text))
-            dialog.SelectedPath = _pathBox.Text;
-        if (dialog.ShowDialog(this) == DialogResult.OK)
-            _pathBox.Text = dialog.SelectedPath;
-    }
-
-    private async void Install_Click(object? sender, EventArgs e)
-    {
-        var dir = _pathBox.Text.Trim().TrimEnd('\\');
-        if (dir.Length == 0 || !Path.IsPathRooted(dir))
-        {
-            SetStatus("Укажите корректную папку установки.");
-            return;
-        }
-
-        if (InstallerCore.IsRunning())
-        {
-            SetStatus("Останавливаю запущенный Adonis…");
-            InstallerCore.StopApp();
-            await Task.Delay(500);
-        }
-
         SetBusy(true);
-        SetStatus("Загрузка последней версии…");
+        Post("log", "Загрузка последней версии…");
         try
         {
             var asset = await InstallerCore.FindLatestAssetAsync();
             if (asset is null)
             {
-                SetStatus("Ошибка: не удалось найти portable-архив в релизе.");
+                Post("error", "Не удалось найти portable-архив в релизе.");
                 return;
             }
 
             var tmp = Path.Combine(Path.GetTempPath(), "adonis_setup_" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(tmp);
             var zip = Path.Combine(tmp, asset.Name);
-            var progress = new Progress<int>(p => _progress.Value = Math.Min(p, 100));
+            var progress = new Progress<int>(p => Post("progress", (p / 100f).ToString("0.##")));
 
-            SetStatus($"Скачивание {asset.Name}…");
+            Post("log", "Скачивание " + asset.Name + "…");
             await InstallerCore.DownloadAsync(asset, zip, progress);
 
-            _progress.Value = 100;
-            SetStatus("Распаковка…");
+            Post("progress", "1");
+            Post("log", "Распаковка…");
             Directory.CreateDirectory(dir);
             InstallerCore.Extract(zip, dir);
 
             try { Directory.Delete(tmp, true); } catch { }
 
             InstallerCore.SaveInstalledDir(dir);
-            if (_shortcutChk.Checked)
-                InstallerCore.CreateDesktopShortcut(Path.Combine(dir, "Adonis.exe"), dir);
+            Post("log", "Создание ярлыка…");
+            InstallerCore.CreateDesktopShortcut(Path.Combine(dir, "Adonis.exe"), dir);
 
-            RefreshState();
-            SetStatus("Установка завершена. Adonis готов к запуску.");
-            _launchBtn.Visible = true;
+            Post("done", "Установка завершена.", true);
         }
         catch (Exception ex)
         {
-            SetStatus("Ошибка установки: " + ex.Message);
+            Post("error", "Ошибка установки: " + ex.Message);
         }
         finally
         {
             SetBusy(false);
+            RefreshUi();
         }
     }
 
-    private async void Reinstall_Click(object? sender, EventArgs e)
+    public async void StartReinstall(string dir)
     {
-        var dir = _pathBox.Text.Trim().TrimEnd('\\');
-        if (dir.Length == 0 || !Path.IsPathRooted(dir))
-        {
-            SetStatus("Укажите корректную папку установки.");
-            return;
-        }
-
-        if (MessageBox.Show(this, "Переустановить Adonis в папку:\n" + dir +
-            "\n\nДанные (бинды, настройки) будут сохранены.", "Переустановка",
-            MessageBoxButtons.OKCancel, MessageBoxIcon.Question) != DialogResult.OK)
-            return;
-
         SetBusy(true);
+        Post("log", "Останавливаю запущенный Adonis…");
+        InstallerCore.StopApp();
+        await Task.Delay(500);
+
+        Post("log", "Удаление старых файлов…");
+        InstallerCore.RemoveInstalledDir(dir);
+
+        Post("log", "Загрузка последней версии…");
         try
         {
-            SetStatus("Удаление старых файлов…");
-            InstallerCore.StopApp();
-            await Task.Delay(500);
-            InstallerCore.RemoveInstalledDir(dir);
-
             var asset = await InstallerCore.FindLatestAssetAsync();
             if (asset is null)
             {
-                SetStatus("Ошибка: не удалось найти portable-архив в релизе.");
+                Post("error", "Не удалось найти portable-архив в релизе.");
                 return;
             }
 
             var tmp = Path.Combine(Path.GetTempPath(), "adonis_setup_" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(tmp);
             var zip = Path.Combine(tmp, asset.Name);
-            var progress = new Progress<int>(p => _progress.Value = Math.Min(p, 100));
+            var progress = new Progress<int>(p => Post("progress", (p / 100f).ToString("0.##")));
 
-            SetStatus($"Скачивание {asset.Name}…");
+            Post("log", "Скачивание " + asset.Name + "…");
             await InstallerCore.DownloadAsync(asset, zip, progress);
 
-            _progress.Value = 100;
-            SetStatus("Распаковка…");
+            Post("progress", "1");
+            Post("log", "Распаковка…");
             Directory.CreateDirectory(dir);
             InstallerCore.Extract(zip, dir);
 
             try { Directory.Delete(tmp, true); } catch { }
 
             InstallerCore.SaveInstalledDir(dir);
-            if (_shortcutChk.Checked)
-                InstallerCore.CreateDesktopShortcut(Path.Combine(dir, "Adonis.exe"), dir);
+            Post("log", "Создание ярлыка…");
+            InstallerCore.CreateDesktopShortcut(Path.Combine(dir, "Adonis.exe"), dir);
 
-            RefreshState();
-            SetStatus("Переустановка завершена.");
-            _launchBtn.Visible = true;
+            Post("done", "Переустановка завершена.", true);
         }
         catch (Exception ex)
         {
-            SetStatus("Ошибка переустановки: " + ex.Message);
+            Post("error", "Ошибка переустановки: " + ex.Message);
         }
         finally
         {
             SetBusy(false);
+            RefreshUi();
         }
     }
 
-    private void Uninstall_Click(object? sender, EventArgs e)
+    public void StartUninstall(bool keepData)
     {
-        var dir = _installedDir;
+        var dir = InstallerCore.InstalledDir();
         if (dir is null)
         {
-            SetStatus("Adonis не установлен.");
+            Post("error", "Adonis не установлен.");
             return;
         }
 
-        var msg = "Удалить Adonis из папки:\n" + dir + "\n";
-        if (_keepDataChk.Checked)
-            msg += "\nДанные (бинды, настройки) будут сохранены в " + InstallerCore.DataDir;
-        else
-            msg += "\nВнимание: данные в " + InstallerCore.DataDir + " будут удалены.";
-
-        if (MessageBox.Show(this, msg, "Удаление",
-            MessageBoxButtons.OKCancel, MessageBoxIcon.Warning) != DialogResult.OK)
-            return;
-
         SetBusy(true);
-        SetStatus("Удаление…");
+        Post("log", "Удаление…");
         try
         {
             InstallerCore.StopApp();
             InstallerCore.RemoveInstalledDir(dir);
             InstallerCore.RemoveState();
-            if (!_keepDataChk.Checked)
+            if (!keepData)
             {
                 try { if (Directory.Exists(InstallerCore.DataDir)) Directory.Delete(InstallerCore.DataDir, true); } catch { }
             }
 
-            RefreshState();
-            SetStatus("Adonis удалён.");
+            Post("done", "Adonis удалён.", true);
         }
         catch (Exception ex)
         {
-            SetStatus("Ошибка удаления: " + ex.Message);
+            Post("error", "Ошибка удаления: " + ex.Message);
         }
         finally
         {
             SetBusy(false);
+            RefreshUi();
         }
     }
 
-    private void Launch_Click(object? sender, EventArgs e)
+    public void LaunchApp()
     {
         var dir = InstallerCore.InstalledDir();
         if (dir is null) return;
@@ -503,23 +259,35 @@ internal sealed class SetupForm : Form
         }
         catch (Exception ex)
         {
-            SetStatus("Ошибка запуска: " + ex.Message);
+            Post("error", "Ошибка запуска: " + ex.Message);
         }
+    }
+
+    private void RefreshUi()
+    {
+        if (IsHandleCreated) BeginInvoke(() => Post("state", "", false, true));
     }
 
     private void SetBusy(bool busy)
     {
-        _installBtn.Enabled = !busy;
-        _reinstallBtn.Enabled = !busy && _installedDir is not null;
-        _uninstallBtn.Enabled = !busy && _installedDir is not null;
-        _browseBtn.Enabled = !busy;
-        _pathBox.Enabled = !busy;
-        _progress.Value = 0;
+        if (IsHandleCreated) BeginInvoke(() => Post("busy", busy ? "1" : "0"));
     }
 
-    private void SetStatus(string text)
+    private void Post(string type, string text = "", bool ok = false, bool refresh = false)
     {
-        _status.Text = text;
-        Application.DoEvents();
+        if (_webView.CoreWebView2 is null) return;
+        var msg = System.Text.Json.JsonSerializer.Serialize(new { type, text, ok, refresh });
+        BeginInvoke(() =>
+        {
+            try { _webView.CoreWebView2.PostWebMessageAsJson(msg); } catch { }
+        });
+    }
+
+    private static string LoadEmbeddedHtml()
+    {
+        using var stream = typeof(SetupForm).Assembly.GetManifestResourceStream("AdonisSetup.SetupUI.html");
+        if (stream is null) return "<html><body style='background:#0b0b0d;color:#fff'>Error</body></html>";
+        using var reader = new StreamReader(stream);
+        return reader.ReadToEnd();
     }
 }

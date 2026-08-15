@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adonis Setup</title>
+<style>
+:root {
+  --bg: #0b0b0d;
+  --surface: #131316;
+  --surface-2: #1a1a1e;
+  --border: #26262b;
+  --border-strong: #3a3a41;
+  --text: #e8e8ec;
+  --muted: #8c8c96;
+  --muted-dim: #5f5f69;
+  --accent: #ff9f1c;
+  --accent-dim: rgba(255, 159, 28, 0.14);
+  --ok: #4ade80;
+  --err: #f87171;
+  --radius: 8px;
+  --titlebar-bg: #0b0b0d;
+  --bg-dots: rgba(255, 255, 255, 0.045);
+  --btn-hover: #232329;
+  --card-bg: linear-gradient(180deg, var(--surface) 0%, #111114 100%);
+  --panel-bg: linear-gradient(180deg, #17171c 0%, #0f0f13 100%);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 14px 36px rgba(0, 0, 0, 0.55);
+  --hairline: rgba(255, 255, 255, 0.06);
+  --ghost-fill: rgba(255, 255, 255, 0.12);
+  --mono: Consolas, "Cascadia Mono", "Courier New", monospace;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: var(--text);
+  background-color: var(--bg);
+  background-image: radial-gradient(var(--bg-dots) 1px, transparent 1px);
+  background-size: 22px 22px;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  overflow: hidden;
+}
+
+::selection { background: var(--accent); color: #120c02; }
+
+/* ---------- titlebar ---------- */
+.titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 36px;
+  background: var(--titlebar-bg);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.titlebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  height: 100%;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.2px;
+  color: var(--muted);
+  -webkit-app-region: no-drag;
+}
+.titlebar-brand svg { width: 15px; height: 15px; color: var(--accent); }
+.titlebar-controls { display: flex; height: 100%; -webkit-app-region: no-drag; }
+.win-btn {
+  width: 44px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.win-btn:hover { background: var(--btn-hover); color: var(--text); }
+.win-close:hover { background: #e81123; color: #fff; }
+
+/* ---------- content ---------- */
+.wrap {
+  height: calc(100vh - 36px);
+  display: flex;
+  flex-direction: column;
+  padding: 24px 28px 20px;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+.brand { display: flex; align-items: center; gap: 14px; }
+.brand .logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, var(--surface-2) 0%, #101014 100%);
+  border: 1px solid var(--border-strong);
+  display: grid;
+  place-items: center;
+  box-shadow: var(--shadow-sm);
+}
+.brand .logo svg { width: 28px; height: 28px; color: var(--accent); }
+.brand h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: 0.3px; }
+.brand p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+
+.ver-badge {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 3px 10px;
+  background: var(--surface);
+  margin-left: auto;
+}
+
+/* ---------- state card ---------- */
+.state-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: var(--radius);
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+}
+.state-card .status-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--muted-dim);
+}
+.state-card.installed .status-dot { background: var(--ok); box-shadow: 0 0 12px rgba(74, 222, 128, 0.5); }
+.state-card .state-title { font-weight: 700; font-size: 14px; }
+.state-card .state-sub { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+
+/* ---------- card ---------- */
+.card {
+  border-radius: var(--radius);
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  padding: 18px 20px;
+  box-shadow: var(--shadow-sm);
+}
+.card h3 {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  color: var(--muted-dim);
+  text-transform: uppercase;
+}
+.card .hint { color: var(--muted); font-size: 12.5px; margin-bottom: 14px; }
+
+.path-row { display: flex; gap: 10px; }
+.path-row input {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13.5px;
+  outline: none;
+  font-family: var(--mono);
+  user-select: text;
+}
+.path-row input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+.opts { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
+.opts label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13.5px;
+  color: var(--text);
+  cursor: pointer;
+}
+.opts input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* ---------- actions ---------- */
+.actions { display: flex; gap: 12px; margin-top: 4px; }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 20px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, transform 0.08s, border-color 0.12s, opacity 0.12s;
+}
+.btn:hover { background: var(--btn-hover); }
+.btn:active { transform: translateY(1px); }
+.btn.primary {
+  background: linear-gradient(180deg, #ffb347, var(--accent));
+  border-color: #d98718;
+  color: #140d02;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+.btn.primary:hover { background: linear-gradient(180deg, var(--accent), #e08a00); }
+.btn.danger {
+  border-color: rgba(248, 113, 113, 0.5);
+  color: var(--err);
+}
+.btn.danger:hover { background: rgba(248, 113, 113, 0.14); }
+.btn.ghost { background: transparent; }
+.btn[disabled] { opacity: 0.55; cursor: default; pointer-events: none; }
+
+/* ---------- progress ---------- */
+.progress-area { display: none; }
+.progress-area.active { display: block; }
+.progress-track {
+  height: 8px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, var(--accent), #ffc86b);
+  border-radius: 6px;
+  transition: width 0.15s ease;
+}
+.log-line {
+  margin-top: 12px;
+  font-size: 12.5px;
+  color: var(--muted);
+  font-family: var(--mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.log-line.ok { color: var(--ok); }
+.log-line.err { color: var(--err); }
+
+/* ---------- scrollbar ---------- */
+::-webkit-scrollbar { width: 11px; height: 11px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: #2c2c31; border-radius: 6px; border: 2px solid var(--bg); }
+::-webkit-scrollbar-thumb:hover { background: #3c3c42; }
+</style>
+</head>
+<body>
+  <div class="titlebar">
+    <div class="titlebar-brand" id="titlebarBrand">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2 3 7v10l9 5 9-5V7z"></path>
+        <path d="M12 22V12"></path>
+        <path d="M3 7l9 5 9-5"></path>
+      </svg>
+      Adonis Setup
+    </div>
+    <div class="titlebar-controls">
+      <button class="win-btn" id="winMin" type="button" title="Свернуть">
+        <svg viewBox="0 0 12 12"><line x1="2" y1="6" x2="10" y2="6" stroke="currentColor" stroke-width="1.1"/></svg>
+      </button>
+      <button class="win-btn win-close" id="winClose" type="button" title="Закрыть">
+        <svg viewBox="0 0 12 12"><line x1="2.5" y1="2.5" x2="9.5" y2="9.5" stroke="currentColor" stroke-width="1.1"/><line x1="9.5" y1="2.5" x2="2.5" y2="9.5" stroke="currentColor" stroke-width="1.1"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="brand">
+      <span class="logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2 3 7v10l9 5 9-5V7z"></path>
+          <path d="M12 22V12"></path>
+          <path d="M3 7l9 5 9-5"></path>
+        </svg>
+      </span>
+      <div>
+        <h1>Установка Adonis</h1>
+        <p>Помощник для Garry's Mod — бинды, рескины, настройки</p>
+      </div>
+      <span class="ver-badge" id="verBadge">v…</span>
+    </div>
+
+    <div class="state-card" id="stateCard">
+      <span class="status-dot"></span>
+      <div>
+        <div class="state-title" id="stateTitle">Проверка состояния…</div>
+        <div class="state-sub" id="stateSub"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Папка установки</h3>
+      <div class="hint">Куда расположить Adonis. Данные (бинды, настройки) всегда хранятся в %APPDATA%\Adonis отдельно.</div>
+      <div class="path-row">
+        <input id="pathInput" spellcheck="false">
+        <button class="btn" id="btnBrowse" type="button">Обзор…</button>
+      </div>
+
+      <div class="opts">
+        <label><input type="checkbox" id="chkShortcut" checked> Создать ярлык на рабочем столе</label>
+        <label><input type="checkbox" id="chkKeepData" checked> При удалении сохранять данные (бинды, настройки)</label>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" id="btnInstall" type="button">Установить</button>
+      <button class="btn" id="btnReinstall" type="button" style="display:none">Переустановить</button>
+      <button class="btn danger" id="btnUninstall" type="button" style="display:none">Удалить</button>
+      <button class="btn ghost" id="btnLaunch" type="button" style="display:none">Запустить Adonis</button>
+    </div>
+
+    <div class="progress-area" id="progressArea">
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="log-line" id="logLine"></div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  const bridge = window.chrome.webview.hostObjects.setupBridge;
+  const $ = id => document.getElementById(id);
+  let busy = false;
+  let state = { installed: false, installDir: "", defaultDir: "", dataDir: "" };
+
+  function updateState() {
+    $("stateCard").classList.toggle("installed", state.installed);
+    $("stateTitle").textContent = state.installed ? "Установлено" : "Не установлено";
+    $("stateSub").textContent = state.installed
+      ? "Установлено в: " + state.installDir
+      : "Adonis не установлен. Выберите папку и нажмите «Установить».";
+    $("pathInput").value = state.installed ? state.installDir : state.defaultDir;
+    $("btnInstall").textContent = state.installed ? "Обновить" : "Установить";
+    $("btnReinstall").style.display = state.installed && !busy ? "" : "none";
+    $("btnUninstall").style.display = state.installed && !busy ? "" : "none";
+    $("btnLaunch").style.display = state.installed ? "" : "none";
+  }
+
+  function log(text, kind) {
+    const line = $("logLine");
+    line.textContent = text;
+    line.className = "log-line" + (kind ? " " + kind : "");
+  }
+
+  function setProgress(p) {
+    $("progressArea").classList.add("active");
+    $("progressFill").style.width = Math.round(p * 100) + "%";
+  }
+
+  function setBusy(b) {
+    busy = b;
+    $("btnInstall").disabled = b;
+    $("btnReinstall").disabled = b;
+    $("btnUninstall").disabled = b;
+    $("btnBrowse").disabled = b;
+    $("pathInput").disabled = b;
+  }
+
+  $("titlebarBrand").addEventListener("mousedown", e => {
+    if (e.button === 0) bridge.BeginDrag();
+  });
+  $("winMin").addEventListener("click", () => bridge.Minimize());
+  $("winClose").addEventListener("click", () => bridge.Close());
+
+  $("btnBrowse").addEventListener("click", async () => {
+    const dir = await bridge.BrowseFolder();
+    if (dir) $("pathInput").value = dir;
+  });
+
+  $("btnInstall").addEventListener("click", () => {
+    const dir = $("pathInput").value.trim().replace(/\\+$/, "");
+    if (!dir) { log("Укажите папку установки.", "err"); return; }
+    bridge.Install(dir);
+  });
+
+  $("btnReinstall").addEventListener("click", () => {
+    const dir = $("pathInput").value.trim().replace(/\\+$/, "");
+    if (!dir) { log("Укажите папку установки.", "err"); return; }
+    bridge.Reinstall(dir);
+  });
+
+  $("btnUninstall").addEventListener("click", () => {
+    bridge.Uninstall($("chkKeepData").checked);
+  });
+
+  $("btnLaunch").addEventListener("click", () => bridge.Launch());
+
+  window.chrome.webview.addEventListener("message", e => {
+    const m = e.data;
+    if (m.type === "busy") { setBusy(m.text === "1"); return; }
+    if (m.type === "progress") { setProgress(parseFloat(m.text)); return; }
+    if (m.type === "log") { log(m.text); return; }
+    if (m.type === "ok") { log(m.text, "ok"); return; }
+    if (m.type === "error") { log(m.text, "err"); return; }
+    if (m.type === "done") { log(m.text, "ok"); return; }
+    if (m.type === "state") {
+      bridge.GetState().then(s => {
+        state = JSON.parse(s);
+        updateState();
+      });
+    }
+  });
+
+  bridge.GetState().then(s => {
+    state = JSON.parse(s);
+    $("verBadge").textContent = "v1.7.0";
+    updateState();
+  });
+})();
+</script>
+</body>
+</html>
