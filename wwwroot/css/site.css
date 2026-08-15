@@ -404,6 +404,8 @@ body {
   color: var(--muted);
 }
 
+.toolbar-side { margin-left: auto; }
+
 /* ---------- cards ---------- */
 
 .addons {
@@ -2153,6 +2155,63 @@ body {
 }
 
 .modal-actions .btn { min-width: 110px; justify-content: center; }
+
+/* ---------- upload addon ---------- */
+.upload-modal { width: min(720px, 100%); max-height: 92vh; overflow-y: auto; }
+.upload-modal .section-desc { margin-bottom: 16px; }
+.upload-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 14px;
+}
+.upload-modal select {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  font-family: var(--mono);
+  outline: none;
+}
+.upload-modal select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+.upload-files {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 14px 0 6px;
+}
+.upload-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 18px 14px;
+  border-radius: var(--radius);
+  border: 1px dashed var(--border-strong);
+  background: var(--bg);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.12s, background 0.12s;
+}
+.upload-box:hover { border-color: var(--accent); background: var(--accent-dim); }
+.upload-box.has-file { border-style: solid; border-color: var(--ok); }
+.upload-box svg { width: 20px; height: 20px; color: var(--muted); flex: none; }
+.upload-box span { font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.upload-box input { display: none; }
+.upload-token {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+.upload-token .modal-field { flex: 1; margin-bottom: 0; }
+.upload-token .btn { flex: none; padding: 8px 16px; }
+.upload-token-hint { margin: 8px 0 0; font-size: 12px; }
 
 @media (max-width: 720px) {
   .topbar { flex-direction: column; align-items: flex-start; }

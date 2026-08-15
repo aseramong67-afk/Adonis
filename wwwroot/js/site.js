@@ -1603,6 +1603,123 @@
     }
   });
 
+  // ---------- upload addon (admin) ----------
+
+  let uploadTokenSaved = false;
+
+  async function refreshAdminUi() {
+    try {
+      const res = await fetch("/api/admin/status");
+      const data = await res.json();
+      const canPublish = data.configured && data.hasToken;
+      uploadTokenSaved = !!data.hasToken;
+      $("#btnUploadAddon").style.display = canPublish ? "" : "none";
+      $("#uploadTokenHint").textContent = data.hasToken
+        ? "Токен настроен."
+        : "Токен не задан — кнопка «Загрузить аддон» не будет показываться.";
+      return canPublish;
+    } catch {
+      return false;
+    }
+  }
+
+  $("#btnUploadAddon").addEventListener("click", async () => {
+    $("#uploadModal").classList.remove("hidden");
+    await refreshAdminUi();
+    $("#upTitle").focus();
+  });
+
+  $("#upCancel").addEventListener("click", () => {
+    $("#uploadModal").classList.add("hidden");
+  });
+
+  $("#upZip").addEventListener("change", (e) => {
+    const f = e.target.files[0];
+    $("#upZipName").textContent = f ? f.name : "Архив аддона (.zip) *";
+    $("#upZipBox").classList.toggle("has-file", !!f);
+  });
+
+  $("#upPreview").addEventListener("change", (e) => {
+    const f = e.target.files[0];
+    $("#upPreviewName").textContent = f ? f.name : "Превью (картинка)";
+    $("#upPreviewBox").classList.toggle("has-file", !!f);
+  });
+
+  $("#btnSaveToken").addEventListener("click", async () => {
+    const token = $("#upToken").value.trim();
+    if (!token) { toast("Введите токен", "err"); return; }
+    const btn = $("#btnSaveToken");
+    btn.disabled = true;
+    try {
+      const res = await fetch("/api/admin/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token })
+      });
+      const data = await res.json();
+      toast(data.message, data.ok ? "ok" : "err");
+      await refreshAdminUi();
+    } catch {
+      toast("Ошибка сохранения токена", "err");
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  $("#upSubmit").addEventListener("click", async () => {
+    const title = $("#upTitle").value.trim();
+    const zip = $("#upZip").files[0];
+    if (!title) { toast("Укажите название аддона", "err"); return; }
+    if (!zip) { toast("Выберите архив .zip", "err"); return; }
+
+    const btn = $("#upSubmit");
+    const old = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<span class="btn-spinner"></span>Публикация...`;
+    try {
+      const fd = new FormData();
+      fd.append("title", title);
+      fd.append("author", $("#upAuthor").value.trim());
+      fd.append("type", $("#upType").value);
+      fd.append("description", $("#upDesc").value.trim());
+      fd.append("tags", $("#upTags").value.trim());
+      fd.append("workshopUrl", $("#upWorkshop").value.trim());
+      fd.append("zip", zip, zip.name);
+      const preview = $("#upPreview").files[0];
+      if (preview) fd.append("preview", preview, preview.name);
+
+      const res = await fetch("/api/admin/addons", { method: "POST", body: fd });
+      const data = await res.json();
+      toast(data.message, data.ok ? "ok" : "err");
+      if (data.ok) {
+        $("#uploadModal").classList.add("hidden");
+        $("#upTitle").value = "";
+        $("#upAuthor").value = "";
+        $("#upDesc").value = "";
+        $("#upTags").value = "";
+        $("#upWorkshop").value = "";
+        $("#upZip").value = "";
+        $("#upPreview").value = "";
+        $("#upZipName").textContent = "Архив аддона (.zip) *";
+        $("#upPreviewName").textContent = "Превью (картинка)";
+        $("#upZipBox").classList.remove("has-file");
+        $("#upPreviewBox").classList.remove("has-file");
+        loadAddons();
+      }
+    } catch {
+      toast("Ошибка публикации", "err");
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = old;
+    }
+  });
+
+  // Автообновление каталога в реальном времени.
+  setInterval(() => {
+    if (!document.querySelector("#view-addons.hidden")) loadAddons();
+  }, 30000);
+  refreshAdminUi();
+
   loadAddons();
   loadSettings();
   loadAuth();

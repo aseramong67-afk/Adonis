@@ -14,3 +14,7 @@ binds.json
 sessions.json
 settings.json
 appsettings.Development.json
+
+# Local release artifacts
+Adonis-portable-*.zip
+AdonisSetup.exe

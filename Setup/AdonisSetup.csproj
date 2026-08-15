@@ -9,8 +9,8 @@
     <AssemblyName>AdonisSetup</AssemblyName>
     <AssemblyTitle>Adonis Setup</AssemblyTitle>
     <Product>Adonis Setup</Product>
-    <Version>1.7.0</Version>
-    <InformationalVersion>1.7.0</InformationalVersion>
+    <Version>1.7.1</Version>
+    <InformationalVersion>1.7.1</InformationalVersion>
     <ApplicationIcon>app.ico</ApplicationIcon>
   </PropertyGroup>
 

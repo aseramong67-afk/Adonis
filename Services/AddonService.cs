@@ -1,3 +1,5 @@
+using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
 using ReskinManager.Models;
 
@@ -23,7 +25,7 @@ public sealed class AddonService
 
     private CatalogJson? _catalogCache;
     private DateTime _catalogFetchedAt = DateTime.MinValue;
-    private const int CatalogCacheSeconds = 120;
+    private const int CatalogCacheSeconds = 30;
 
     public AddonService(IWebHostEnvironment env, SettingsService settings, IConfiguration config)
     {
@@ -57,6 +59,166 @@ public sealed class AddonService
 
     public bool IsGitHubConfigured =>
         !string.IsNullOrWhiteSpace(_gitHub.Owner) && !string.IsNullOrWhiteSpace(_gitHub.Repo);
+
+    // ---------- publishing (admin) ----------
+
+    public bool HasPublishToken => !string.IsNullOrWhiteSpace(_settings.Current.GitHubToken);
+
+    public OperationResult SavePublishToken(string? token)
+    {
+        var data = _settings.Current;
+        data.GitHubToken = (token ?? "").Trim();
+        _settings.Save(data);
+        return new OperationResult(true, "Токен сохранён.");
+    }
+
+    public async Task<OperationResult> PublishAddonAsync(string title, string author, string description,
+        string type, string[] tags, string workshopUrl, byte[] zipBytes, string zipName,
+        byte[]? previewBytes, string? previewName)
+    {
+        if (!IsGitHubConfigured)
+            return new OperationResult(false, "GitHub не настроен.");
+        if (string.IsNullOrWhiteSpace(_settings.Current.GitHubToken))
+            return new OperationResult(false, "Не задан токен GitHub. Укажите его в настройках.");
+        if (zipBytes is null || zipBytes.Length == 0)
+            return new OperationResult(false, "Не выбран архив аддона.");
+        if (string.IsNullOrWhiteSpace(title))
+            return new OperationResult(false, "Укажите название аддона.");
+
+        var token = _settings.Current.GitHubToken.Trim();
+        var client = new HttpClient(new HttpClientHandler { UseProxy = false })
+        {
+            Timeout = TimeSpan.FromSeconds(120)
+        };
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("Adonis/1.0");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        client.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
+
+        var id = MakeSlug(title);
+        if (string.IsNullOrWhiteSpace(id)) id = "addon-" + DateTime.UtcNow.ToString("yyMMddHHmmss");
+        var archiveName = string.IsNullOrWhiteSpace(zipName) ? $"{id}.zip" : zipName;
+        if (!archiveName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+            archiveName += ".zip";
+
+        try
+        {
+            // 1) архив
+            var put = await PutFileAsync(client, $"reskins/zips/{archiveName}", zipBytes, null,
+                $"Добавлен аддон: {title}");
+            if (!put) return new OperationResult(false, "Не удалось загрузить архив в GitHub. Проверьте токен.");
+
+            // 2) превью
+            var preview = "";
+            if (previewBytes is not null && previewBytes.Length > 0)
+            {
+                var ext = Path.GetExtension(previewName ?? "preview.png");
+                if (string.IsNullOrWhiteSpace(ext)) ext = ".png";
+                var previewPath = $"reskins/previews/{id}{ext}";
+                var ok = await PutFileAsync(client, previewPath, previewBytes, null, $"Превью аддона: {title}");
+                if (ok) preview = $"previews/{id}{ext}";
+            }
+
+            // 3) каталог
+            var (catalogJson, sha) = await GetCatalogForUpdateAsync(client);
+            if (catalogJson is null) return new OperationResult(false, "Не удалось получить каталог из GitHub.");
+
+            var catalog = JsonSerializer.Deserialize<CatalogJson>(catalogJson, JsonOpts) ?? new CatalogJson();
+            catalog.Addons.RemoveAll(a => a.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
+            catalog.Addons.Insert(0, new CatalogAddon
+            {
+                Id = id,
+                Title = title,
+                Author = author,
+                Type = string.IsNullOrWhiteSpace(type) ? "reskin" : type,
+                Tags = tags,
+                Description = description,
+                WorkshopUrl = workshopUrl,
+                Preview = preview,
+                Archive = $"zips/{archiveName}",
+                SizeBytes = zipBytes.Length
+            });
+            catalog.UpdatedAt = DateTime.UtcNow.ToString("yyyy-MM-dd");
+
+            var newJson = JsonSerializer.Serialize(catalog,
+                new JsonSerializerOptions { WriteIndented = true });
+            var okCatalog = await PutFileAsync(client, "reskins/catalog.json",
+                Encoding.UTF8.GetBytes(newJson), sha, $"Каталог аддонов: добавлен {title}");
+
+            if (!okCatalog)
+                return new OperationResult(false, "Архив загружен, но каталог не обновлён. Проверьте токен.");
+
+            _catalogCache = null;
+            return new OperationResult(true, $"Аддон «{title}» опубликован и появился у всех.", id);
+        }
+        catch (Exception ex)
+        {
+            return new OperationResult(false, "Ошибка публикации: " + ex.Message);
+        }
+    }
+
+    private static async Task<bool> PutFileAsync(HttpClient client, string path, byte[] bytes, string? sha, string message)
+    {
+        var payload = new Dictionary<string, object?>
+        {
+            ["message"] = message,
+            ["content"] = Convert.ToBase64String(bytes),
+            ["branch"] = "main"
+        };
+        if (!string.IsNullOrEmpty(sha)) payload["sha"] = sha;
+
+        using var req = new HttpRequestMessage(HttpMethod.Put,
+            $"https://api.github.com/repos/aseramong67-afk/Adonis/contents/{Uri.EscapeDataString(path)}")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json")
+        };
+        using var res = await client.SendAsync(req);
+        return res.IsSuccessStatusCode;
+    }
+
+    private static async Task<(string? json, string? sha)> GetCatalogForUpdateAsync(HttpClient client)
+    {
+        using var req = new HttpRequestMessage(HttpMethod.Get,
+            "https://api.github.com/repos/aseramong67-afk/Adonis/contents/reskins/catalog.json?ref=main");
+        using var res = await client.SendAsync(req);
+        if (!res.IsSuccessStatusCode) return (null, null);
+
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        var content = doc.RootElement.TryGetProperty("content", out var c) ? c.GetString() : null;
+        var sha = doc.RootElement.TryGetProperty("sha", out var s) ? s.GetString() : null;
+        if (content is null) return (null, sha);
+
+        var json = Encoding.UTF8.GetString(Convert.FromBase64String(content.Replace("\n", "").Replace("\r", "")));
+        return (json, sha);
+    }
+
+    private static string MakeSlug(string title)
+    {
+        var translit = new Dictionary<char, string>
+        {
+            ['а'] = "a", ['б'] = "b", ['в'] = "v", ['г'] = "g", ['д'] = "d", ['е'] = "e", ['ё'] = "e",
+            ['ж'] = "zh", ['з'] = "z", ['и'] = "i", ['й'] = "y", ['к'] = "k", ['л'] = "l", ['м'] = "m",
+            ['н'] = "n", ['о'] = "o", ['п'] = "p", ['р'] = "r", ['с'] = "s", ['т'] = "t", ['у'] = "u",
+            ['ф'] = "f", ['х'] = "h", ['ц'] = "ts", ['ч'] = "ch", ['ш'] = "sh", ['щ'] = "sch",
+            ['ъ'] = "", ['ы'] = "y", ['ь'] = "", ['э'] = "e", ['ю'] = "yu", ['я'] = "ya"
+        };
+        var sb = new StringBuilder();
+        foreach (var ch in title.ToLowerInvariant())
+        {
+            if (char.IsLetterOrDigit(ch))
+            {
+                if (ch >= 'a' && ch <= 'z') sb.Append(ch);
+                else if (ch >= '0' && ch <= '9') sb.Append(ch);
+                else if (translit.TryGetValue(ch, out var r)) sb.Append(r);
+            }
+            else if (ch is ' ' or '-' or '_')
+            {
+                sb.Append('-');
+            }
+        }
+        var slug = sb.ToString().Trim('-');
+        while (slug.Contains("--")) slug = slug.Replace("--", "-");
+        return slug;
+    }
 
     // ---------- catalog ----------
 

@@ -10,6 +10,7 @@ public sealed class SettingsData
     public List<string> LaunchOptions { get; set; } = new();
     public bool HandsEnabled { get; set; } = true;
     public int HandsFov { get; set; } = 90;
+    public string GitHubToken { get; set; } = "";
 }
 
 public sealed record LaunchOption(string Key, string Arg, string Title, string Description);

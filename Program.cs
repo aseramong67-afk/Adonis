@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.FileProviders;
 using ReskinManager.Services;
@@ -80,6 +81,79 @@ app.Use(async (ctx, next) =>
 });
 
 app.MapGet("/api/addons", async (AddonService svc) => await svc.GetAddons());
+
+// ---------- admin publishing ----------
+
+app.MapGet("/api/admin/status", (AddonService svc) => new
+{
+    configured = svc.IsGitHubConfigured,
+    hasToken = svc.HasPublishToken
+});
+
+app.MapPost("/api/admin/token", (AddonService svc, [FromBody] AdminTokenDto dto) =>
+{
+    var result = svc.SavePublishToken(dto?.Token);
+    return Results.Ok(new { ok = result.Ok, message = result.Message, hasToken = svc.HasPublishToken });
+});
+
+app.MapPost("/api/admin/addons", async (AddonService svc, HttpRequest req) =>
+{
+    try
+    {
+        req.Body = new BufferedStream(req.Body);
+        var form = await req.ReadFormAsync(new FormOptions
+        {
+            MultipartBodyLengthLimit = 200 * 1024 * 1024,
+            ValueLengthLimit = 128 * 1024,
+            MemoryBufferThreshold = 1024 * 1024
+        });
+        var file = form.Files.FirstOrDefault(f => f.Name == "zip");
+        if (file is null) return Results.Ok(new { ok = false, message = "Не выбран архив аддона." });
+
+        byte[] zipBytes;
+        using (var ms = new MemoryStream())
+        {
+            await file.CopyToAsync(ms);
+            zipBytes = ms.ToArray();
+        }
+
+        byte[]? previewBytes = null;
+        string? previewName = null;
+        var previewFile = form.Files.FirstOrDefault(f => f.Name == "preview");
+        if (previewFile is not null && previewFile.Length > 0)
+        {
+            using var ms = new MemoryStream();
+            await previewFile.CopyToAsync(ms);
+            previewBytes = ms.ToArray();
+            previewName = previewFile.FileName;
+        }
+
+        var tags = (form["tags"].ToString() ?? "")
+            .Split(',', ';')
+            .Select(t => t.Trim())
+            .Where(t => !string.IsNullOrWhiteSpace(t))
+            .ToArray();
+
+        var result = await svc.PublishAddonAsync(
+            form["title"].ToString(),
+            form["author"].ToString(),
+            form["description"].ToString(),
+            form["type"].ToString(),
+            tags,
+            form["workshopUrl"].ToString(),
+            zipBytes,
+            file.FileName,
+            previewBytes,
+            previewName);
+
+        return Results.Ok(new { ok = result.Ok, message = result.Message, id = result.Data });
+    }
+    catch (Exception ex)
+    {
+        return Results.Ok(new { ok = false, message = "Ошибка загрузки: " + ex.Message });
+    }
+});
+
 
 app.MapGet("/api/version", (UpdateService updater) => new { version = updater.CurrentVersion });
 
@@ -406,6 +480,8 @@ await app.StopAsync();
 static string? GetSessionToken(HttpContext ctx) => ctx.Request.Cookies["reskin_session"];
 
 public sealed record SettingsUpdateDto(string? TargetPath, string? AccentColor);
+
+public sealed record AdminTokenDto(string? Token);
 
 public sealed record OptimizationUpdateDto(bool Enabled);
 public sealed record OptimizationOptionUpdateDto(string Key, bool Enabled);
