@@ -55,11 +55,36 @@ public sealed class SetupBridge
     public void Uninstall(bool keepData) => _form.StartUninstall(keepData);
 
     public void Launch() => _form.LaunchApp();
+
+    public string GetAddonsState()
+    {
+        var path = _form.AddonsPath;
+        return System.Text.Json.JsonSerializer.Serialize(new
+        {
+            addonsPath = path ?? "",
+            found = path is not null
+        });
+    }
+
+    public string GetAddonsCatalog()
+    {
+        var result = _form.GetAddonsCatalog();
+        return result ?? "[]";
+    }
+
+    public string BrowseAddonsFolder() => _form.PickAddonsFolder();
+
+    public void InstallAddon(string json) => _form.StartAddonInstall(json);
+
+    public void UninstallAddon(string id) => _form.StartAddonUninstall(id);
 }
 
 public sealed class SetupForm : Form
 {
     private readonly WebView2 _webView = new();
+    private string? _addonsPath;
+
+    public string? AddonsPath => _addonsPath;
 
     public SetupForm()
     {
@@ -110,6 +135,26 @@ public sealed class SetupForm : Form
 
             if (dialog.ShowDialog(this) == DialogResult.OK)
                 result = dialog.SelectedPath;
+        });
+        return result;
+    }
+
+    public string PickAddonsFolder()
+    {
+        string result = "";
+        Invoke(() =>
+        {
+            using var dialog = new FolderBrowserDialog();
+            dialog.Description = "Выберите папку addons Garry's Mod";
+            var found = SteamLocator.FindGmodAddonsPath();
+            if (!string.IsNullOrEmpty(found) && Directory.Exists(found))
+                dialog.SelectedPath = found;
+
+            if (dialog.ShowDialog(this) == DialogResult.OK)
+            {
+                _addonsPath = dialog.SelectedPath;
+                result = dialog.SelectedPath;
+            }
         });
         return result;
     }
@@ -261,6 +306,146 @@ public sealed class SetupForm : Form
         {
             Post("error", "Ошибка запуска: " + ex.Message);
         }
+    }
+
+    private string? _addonsCatalogCache;
+
+    public string? GetAddonsCatalog()
+    {
+        if (_addonsCatalogCache is not null) return _addonsCatalogCache;
+        return null;
+    }
+
+    public async void LoadAddons()
+    {
+        SetBusy(true);
+        Post("log", "Загрузка каталога аддонов…");
+        try
+        {
+            if (string.IsNullOrWhiteSpace(_addonsPath))
+                _addonsPath = SteamLocator.FindGmodAddonsPath();
+
+            var catalog = await InstallerCore.GetCatalogAsync();
+            var list = catalog.Addons.Select(a => new
+            {
+                a.Id,
+                a.Title,
+                a.Author,
+                a.Type,
+                a.Tags,
+                a.Description,
+                a.WorkshopUrl,
+                Preview = string.IsNullOrWhiteSpace(a.Preview) ? "" :
+                    (a.Preview.StartsWith("http://") || a.Preview.StartsWith("https://") ? a.Preview :
+                        "https://raw.githubusercontent.com/aseramong67-afk/Adonis/main/reskins/" + a.Preview.TrimStart('/')),
+                SizeText = FormatSize(a.SizeBytes),
+                Installed = InstallerCore.AddonInstalled(_addonsPath, a.Id)
+            }).ToList();
+
+            _addonsCatalogCache = System.Text.Json.JsonSerializer.Serialize(list);
+            Post("addons", _addonsCatalogCache);
+        }
+        catch (Exception ex)
+        {
+            Post("error", "Ошибка загрузки каталога: " + ex.Message);
+        }
+        finally
+        {
+            SetBusy(false);
+        }
+    }
+
+    public async void StartAddonInstall(string json)
+    {
+        CatalogAddon? addon;
+        try
+        {
+            addon = System.Text.Json.JsonSerializer.Deserialize<CatalogAddon>(json,
+                new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        }
+        catch
+        {
+            addon = null;
+        }
+        if (addon is null)
+        {
+            Post("error", "Ошибка параметров аддона.");
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(_addonsPath))
+            _addonsPath = SteamLocator.FindGmodAddonsPath();
+        if (string.IsNullOrWhiteSpace(_addonsPath))
+        {
+            Post("error", "Папка addons не найдена. Нажмите «Выбрать папку» и укажите её вручную.");
+            return;
+        }
+
+        SetBusy(true);
+        Post("addonbusy", addon.Id);
+        Post("log", "Загрузка аддона «" + addon.Title + "»…");
+        try
+        {
+            var progress = new Progress<int>(p => Post("addonprogress", JsonMin(addon.Id, p)));
+            var id = await InstallerCore.InstallAddonAsync(addon, _addonsPath, progress);
+            Post("addondone", JsonMin(id, true));
+        }
+        catch (Exception ex)
+        {
+            Post("addonerror", JsonMin(addon.Id, ex.Message));
+        }
+        finally
+        {
+            SetBusy(false);
+            RefreshUi();
+        }
+    }
+
+    public void StartAddonUninstall(string id)
+    {
+        if (string.IsNullOrWhiteSpace(_addonsPath))
+            _addonsPath = SteamLocator.FindGmodAddonsPath();
+        if (string.IsNullOrWhiteSpace(_addonsPath))
+        {
+            Post("error", "Папка addons не найдена.");
+            return;
+        }
+
+        SetBusy(true);
+        Post("addonbusy", id);
+        Post("log", "Удаление аддона…");
+        try
+        {
+            InstallerCore.UninstallAddon(_addonsPath, id);
+            Post("addondone", JsonMin(id, true));
+        }
+        catch (Exception ex)
+        {
+            Post("addonerror", JsonMin(id, ex.Message));
+        }
+        finally
+        {
+            SetBusy(false);
+            RefreshUi();
+        }
+    }
+
+    private static string JsonMin(string id, object value)
+    {
+        return System.Text.Json.JsonSerializer.Serialize(new { id, value });
+    }
+
+    private static string FormatSize(long bytes)
+    {
+        if (bytes <= 0) return "";
+        string[] units = ["Б", "КБ", "МБ", "ГБ"];
+        double size = bytes;
+        var unit = 0;
+        while (size >= 1024 && unit < units.Length - 1)
+        {
+            size /= 1024;
+            unit++;
+        }
+        return size.ToString(unit == 0 ? "0" : "0.#") + " " + units[unit];
     }
 
     private void RefreshUi()

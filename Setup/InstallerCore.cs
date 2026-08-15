@@ -6,6 +6,25 @@ namespace AdonisSetup;
 
 internal sealed record ReleaseAsset(string Name, string Url);
 
+internal sealed class CatalogAddon
+{
+    public string Id { get; set; } = "";
+    public string Title { get; set; } = "";
+    public string Author { get; set; } = "";
+    public string Type { get; set; } = "";
+    public string[] Tags { get; set; } = [];
+    public string Description { get; set; } = "";
+    public string WorkshopUrl { get; set; } = "";
+    public string Preview { get; set; } = "";
+    public string Archive { get; set; } = "";
+    public long SizeBytes { get; set; }
+}
+
+internal sealed class CatalogJson
+{
+    public List<CatalogAddon> Addons { get; set; } = new();
+}
+
 internal static class InstallerCore
 {
     private const string Owner = "aseramong67-afk";
@@ -197,5 +216,129 @@ internal static class InstallerCore
     {
         ClearState();
         try { if (File.Exists(StateFile)) File.Delete(StateFile); } catch { }
+    }
+
+    // ---------- addons ----------
+
+    public static string? FindGmodAddonsPath() => SteamLocator.FindGmodAddonsPath();
+
+    public static async Task<CatalogJson> GetCatalogAsync()
+    {
+        try
+        {
+            var json = await Http.GetStringAsync($"https://raw.githubusercontent.com/{Owner}/{Repo}/main/reskins/catalog.json");
+            return JsonSerializer.Deserialize<CatalogJson>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new CatalogJson();
+        }
+        catch
+        {
+            return new CatalogJson();
+        }
+    }
+
+    public static bool AddonInstalled(string addonsPath, string id)
+    {
+        try
+        {
+            return !string.IsNullOrWhiteSpace(addonsPath) &&
+                   Directory.Exists(Path.Combine(addonsPath, id));
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public static async Task<string> InstallAddonAsync(CatalogAddon addon, string addonsPath, IProgress<int>? progress)
+    {
+        if (string.IsNullOrWhiteSpace(addonsPath))
+            throw new InvalidOperationException("Не найдена папка addons Garry's Mod.");
+        if (AddonInstalled(addonsPath, addon.Id))
+            throw new InvalidOperationException("Аддон уже установлен.");
+
+        var archive = string.IsNullOrWhiteSpace(addon.Archive) ? $"{addon.Id}.zip" : addon.Archive;
+        var url = $"https://raw.githubusercontent.com/{Owner}/{Repo}/main/reskins/{archive.TrimStart('/')}";
+
+        var tmpDir = Path.Combine(Path.GetTempPath(), "adonis_addon_" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            Directory.CreateDirectory(tmpDir);
+            var zipPath = Path.Combine(tmpDir, Path.GetFileName(archive));
+
+            using (var res = await Http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead))
+            {
+                res.EnsureSuccessStatusCode();
+                var total = res.Content.Headers.ContentLength ?? 0;
+                await using var src = await res.Content.ReadAsStreamAsync();
+                await using var dst = File.Create(zipPath);
+                var buffer = new byte[81920];
+                long read = 0;
+                int chunk;
+                while ((chunk = await src.ReadAsync(buffer)) > 0)
+                {
+                    await dst.WriteAsync(buffer.AsMemory(0, chunk));
+                    read += chunk;
+                    if (total > 0) progress?.Report((int)(read * 100 / total));
+                }
+            }
+
+            var extractDir = Path.Combine(tmpDir, "x");
+            Directory.CreateDirectory(extractDir);
+            Extract(zipPath, extractDir);
+
+            var dstDir = Path.Combine(addonsPath, addon.Id);
+            Directory.CreateDirectory(dstDir);
+
+            var ignore = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var entry in Directory.EnumerateFileSystemEntries(extractDir))
+            {
+                var name = Path.GetFileName(entry);
+                if (name.Equals(addon.Id + ".zip", StringComparison.OrdinalIgnoreCase)) continue;
+                if (name.Equals(addon.Id + ".gma", StringComparison.OrdinalIgnoreCase)) continue;
+                var dest = Path.Combine(dstDir, name);
+                if (Directory.Exists(entry))
+                    CopyDirectory(entry, dest, ignore);
+                else
+                    File.Copy(entry, dest, overwrite: true);
+            }
+
+            return addon.Id;
+        }
+        finally
+        {
+            try { if (Directory.Exists(tmpDir)) Directory.Delete(tmpDir, true); } catch { }
+        }
+    }
+
+    public static void UninstallAddon(string addonsPath, string id)
+    {
+        if (string.IsNullOrWhiteSpace(addonsPath)) return;
+        var dir = Path.Combine(addonsPath, id);
+        if (!Directory.Exists(dir)) return;
+        for (var i = 0; i < 3; i++)
+        {
+            try
+            {
+                Directory.Delete(dir, true);
+                return;
+            }
+            catch
+            {
+                Thread.Sleep(500);
+            }
+        }
+    }
+
+    private static void CopyDirectory(string src, string dst, HashSet<string> ignore)
+    {
+        Directory.CreateDirectory(dst);
+        foreach (var entry in Directory.EnumerateFileSystemEntries(src))
+        {
+            var name = Path.GetFileName(entry);
+            var dest = Path.Combine(dst, name);
+            if (Directory.Exists(entry))
+                CopyDirectory(entry, dest, ignore);
+            else
+                File.Copy(entry, dest, overwrite: true);
+        }
     }
 }

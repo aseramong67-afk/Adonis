@@ -260,6 +260,111 @@ body {
 .log-line.ok { color: var(--ok); }
 .log-line.err { color: var(--err); }
 
+/* ---------- addons ---------- */
+.addons-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.addons-head .hint { margin: 0; }
+.addons-head .btn { padding: 7px 14px; font-size: 12.5px; }
+.addons-toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; }
+.addons-toolbar .path-chip {
+  flex: 1;
+  padding: 9px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12px;
+  font-family: var(--mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.addons-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 12px;
+}
+.addon-card {
+  border-radius: var(--radius);
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color 0.12s;
+}
+.addon-card:hover { border-color: var(--border-strong); }
+.addon-card .addon-top { display: flex; align-items: flex-start; gap: 12px; }
+.addon-card .addon-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  flex-shrink: 0;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+.addon-card .addon-icon img { width: 100%; height: 100%; object-fit: cover; }
+.addon-card .addon-icon svg { width: 22px; height: 22px; color: var(--muted-dim); }
+.addon-card .addon-info { min-width: 0; flex: 1; }
+.addon-card .addon-title { font-weight: 700; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.addon-card .addon-author { color: var(--muted); font-size: 12px; margin-top: 2px; }
+.addon-card .addon-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+.chip {
+  font-size: 10.5px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  background: var(--surface);
+}
+.chip.accent { color: var(--accent); border-color: rgba(255, 159, 28, 0.35); background: var(--accent-dim); }
+.addon-card .addon-desc {
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.addon-card .addon-bottom { display: flex; align-items: center; gap: 10px; }
+.addon-card .addon-bottom .btn { padding: 7px 14px; font-size: 12.5px; flex-shrink: 0; }
+.addon-card .addon-state {
+  flex: 1;
+  font-size: 12px;
+  color: var(--ok);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.addon-card .addon-state.not { color: var(--muted); }
+.addon-card .addon-state.busy { color: var(--accent); }
+.addon-card .addon-bar {
+  height: 5px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  overflow: hidden;
+  display: none;
+}
+.addon-card .addon-bar.active { display: block; }
+.addon-card .addon-bar i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, var(--accent), #ffc86b);
+  transition: width 0.15s ease;
+}
+.addon-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: var(--muted);
+  padding: 24px;
+  font-size: 13px;
+}
+
 /* ---------- scrollbar ---------- */
 ::-webkit-scrollbar { width: 11px; height: 11px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
@@ -336,6 +441,25 @@ body {
       <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
       <div class="log-line" id="logLine"></div>
     </div>
+
+    <div class="card" style="margin-top: 8px;">
+      <div class="addons-head">
+        <div>
+          <h3 style="margin:0 0 4px;">Аддоны</h3>
+          <div class="hint">Каталог аддонов и рескинов. Устанавливаются в папку addons Garry's Mod.</div>
+        </div>
+        <button class="btn" id="btnLoadAddons" type="button">Загрузить каталог</button>
+      </div>
+
+      <div class="addons-toolbar" id="addonsToolbar" style="display:none;">
+        <span class="path-chip" id="addonsPathChip" title=""></span>
+        <button class="btn" id="btnBrowseAddons" type="button">Выбрать папку…</button>
+      </div>
+
+      <div class="addons-list" id="addonsList">
+        <div class="addon-empty" id="addonsEmpty">Нажмите «Загрузить каталог», чтобы получить список аддонов.</div>
+      </div>
+    </div>
   </div>
 
 <script>
@@ -407,6 +531,103 @@ body {
 
   $("btnLaunch").addEventListener("click", () => bridge.Launch());
 
+  // ---------- addons ----------
+  let addons = [];
+  const addonStates = {};
+
+  function setAddonState(id, kind, text) {
+    addonStates[id] = { kind, text };
+    const el = document.querySelector(`.addon-card[data-id="${id}"]`);
+    if (!el) return;
+    const st = el.querySelector(".addon-state");
+    const bar = el.querySelector(".addon-bar");
+    const btn = el.querySelector(".addon-act");
+    if (st) {
+      st.className = "addon-state" + (kind === "not" ? " not" : kind === "busy" ? " busy" : "");
+      st.textContent = text;
+    }
+    if (bar) bar.classList.toggle("active", kind === "busy");
+    if (btn) {
+      btn.disabled = kind === "busy";
+      btn.textContent = kind === "busy" ? "…" : (kind === "ok" ? "Удалить" : "Установить");
+      btn.className = "btn addon-act" + (kind === "ok" ? " danger" : " primary");
+    }
+  }
+
+  function setAddonProgress(id, p) {
+    const el = document.querySelector(`.addon-card[data-id="${id}"] .addon-bar i`);
+    if (el) el.style.width = Math.round(p) + "%";
+  }
+
+  function esc(s) {
+    return String(s ?? "").replace(/[&<>"']/g, c =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  function renderAddons() {
+    const list = $("addonsList");
+    list.innerHTML = "";
+    if (!addons.length) {
+      list.innerHTML = '<div class="addon-empty" id="addonsEmpty">Каталог пуст или не загрузился.</div>';
+      return;
+    }
+    for (const a of addons) {
+      const st = addonStates[a.id] || { kind: a.Installed ? "ok" : "not", text: a.Installed ? "✓ Установлен" : "Не установлен" };
+      const card = document.createElement("div");
+      card.className = "addon-card";
+      card.dataset.id = a.id;
+      const icon = a.Preview
+        ? `<img src="${esc(a.Preview)}" onerror="this.parentNode.innerHTML='<svg viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot;><rect x=&quot;3&quot; y=&quot;3&quot; width=&quot;18&quot; height=&quot;18&quot; rx=&quot;3&quot;/></svg>'">`
+        : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"></rect><path d="M3 9h18"></path><path d="M9 21V9"></path></svg>`;
+      const tags = (a.Tags || []).slice(0, 4).map(t =>
+        `<span class="chip${t === "аддон" ? " accent" : ""}">${esc(t)}</span>`).join("");
+      const type = a.Type ? `<span class="chip accent">${esc(a.Type)}</span>` : "";
+      card.innerHTML = `
+        <div class="addon-top">
+          <span class="addon-icon">${icon}</span>
+          <div class="addon-info">
+            <div class="addon-title" title="${esc(a.Title)}">${esc(a.Title)}</div>
+            <div class="addon-author">${esc(a.Author)} · ${esc(a.SizeText)}</div>
+            <div class="addon-meta">${type}${tags}</div>
+          </div>
+        </div>
+        <div class="addon-desc">${esc(a.Description)}</div>
+        <div class="addon-bottom">
+          <span class="addon-state ${st.kind === "not" ? "not" : ""}">${esc(st.text)}</span>
+          <button class="btn ${st.kind === "ok" ? "danger" : "primary"} addon-act" type="button">${st.kind === "ok" ? "Удалить" : "Установить"}</button>
+        </div>
+        <div class="addon-bar"><i></i></div>`;
+      const act = card.querySelector(".addon-act");
+      act.addEventListener("click", () => {
+        if (st.kind === "ok") bridge.UninstallAddon(a.Id);
+        else bridge.InstallAddon(JSON.stringify(a));
+      });
+      list.appendChild(card);
+    }
+  }
+
+  async function refreshAddons() {
+    const s = JSON.parse(await bridge.GetAddonsState());
+    $("addonsToolbar").style.display = "";
+    $("addonsPathChip").textContent = s.addonsPath ? s.addonsPath : "Папка addons не найдена";
+    $("addonsPathChip").title = s.addonsPath || "";
+  }
+
+  $("btnLoadAddons").addEventListener("click", () => {
+    $("btnLoadAddons").disabled = true;
+    $("btnLoadAddons").textContent = "Загрузка…";
+    bridge.LoadAddons();
+  });
+
+  $("btnBrowseAddons").addEventListener("click", async () => {
+    const dir = await bridge.BrowseAddonsFolder();
+    if (dir) {
+      $("addonsPathChip").textContent = dir;
+      $("addonsPathChip").title = dir;
+      if (addons.length) renderAddons();
+    }
+  });
+
   window.chrome.webview.addEventListener("message", e => {
     const m = e.data;
     if (m.type === "busy") { setBusy(m.text === "1"); return; }
@@ -415,6 +636,37 @@ body {
     if (m.type === "ok") { log(m.text, "ok"); return; }
     if (m.type === "error") { log(m.text, "err"); return; }
     if (m.type === "done") { log(m.text, "ok"); return; }
+    if (m.type === "addons") {
+      addons = JSON.parse(m.text);
+      $("btnLoadAddons").disabled = false;
+      $("btnLoadAddons").textContent = "Обновить каталог";
+      renderAddons();
+      refreshAddons();
+      return;
+    }
+    if (m.type === "addonbusy") {
+      setAddonState(m.text, "busy", "Загрузка…");
+      return;
+    }
+    if (m.type === "addonprogress") {
+      const p = JSON.parse(m.text);
+      setAddonProgress(p.id, p.value);
+      return;
+    }
+    if (m.type === "addondone") {
+      const d = JSON.parse(m.text);
+      setAddonProgress(d.id, 0);
+      setAddonState(d.id, "ok", "✓ Установлен");
+      log("Аддон " + (d.value === true ? "удалён." : "установлен."), "ok");
+      return;
+    }
+    if (m.type === "addonerror") {
+      const d = JSON.parse(m.text);
+      setAddonProgress(d.id, 0);
+      setAddonState(d.id, "not", "Не установлен");
+      log("Ошибка: " + d.value, "err");
+      return;
+    }
     if (m.type === "state") {
       bridge.GetState().then(s => {
         state = JSON.parse(s);
