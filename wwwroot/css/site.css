@@ -1866,6 +1866,68 @@ body {
 
 .update-modal { width: min(680px, 100%); }
 
+.update-overlay { z-index: 300; }
+
+.update-modal.update-modal {
+  width: min(1120px, 94vw);
+  max-height: 88vh;
+  min-height: 55vh;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 26px 30px 24px;
+}
+
+.update-modal-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.update-modal-icon {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 80%, #ffffff), var(--accent));
+  color: #fff;
+}
+
+.update-modal-icon svg { width: 26px; height: 26px; }
+
+.update-modal h2 {
+  margin: 0 0 4px;
+  font-size: 22px;
+}
+
+.update-modal .update-sub {
+  margin: 0;
+  font-size: 14px;
+}
+
+.update-modal .update-changes {
+  flex: 1;
+  max-height: none;
+  font-size: 15px;
+}
+
+.update-modal .update-changes .update-change-body {
+  font-size: 14.5px;
+}
+
+.update-modal-actions {
+  flex: none;
+  padding-top: 4px;
+}
+
+.update-modal-actions .btn {
+  min-width: 150px;
+  padding: 11px 20px;
+  font-size: 14.5px;
+}
+
 .update-sub {
   margin: 0 0 14px;
   font-family: var(--mono);

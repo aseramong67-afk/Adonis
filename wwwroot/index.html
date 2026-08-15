@@ -386,12 +386,19 @@
     <img src="" alt="Просмотр">
   </div>
 
-  <div id="updateModal" class="modal-overlay hidden">
+  <div id="updateModal" class="modal-overlay update-overlay hidden">
     <div class="modal update-modal">
-      <h2>Доступно обновление</h2>
-      <p class="update-sub" id="updateModalSub"></p>
+      <div class="update-modal-head">
+        <div class="update-modal-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36L21 8"/><path d="M21 3v5h-5"/></svg>
+        </div>
+        <div>
+          <h2>Доступно обновление</h2>
+          <p class="update-sub" id="updateModalSub"></p>
+        </div>
+      </div>
       <div class="update-changes" id="updateChanges"></div>
-      <div class="modal-actions">
+      <div class="modal-actions update-modal-actions">
         <button class="btn ghost" id="updateModalLater" type="button">Позже</button>
         <button class="btn primary" id="updateModalApply" type="button">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36L21 8"/><path d="M21 3v5h-5"/></svg>
