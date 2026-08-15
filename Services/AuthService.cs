@@ -42,8 +42,8 @@ public sealed class AuthService
     public AuthService(IWebHostEnvironment env, AppState state)
     {
         _state = state;
-        _config = LoadConfig(Path.Combine(env.ContentRootPath, "auth.json"));
-        _sessionsPath = Path.Combine(env.ContentRootPath, "sessions.json");
+        _config = LoadConfig(AppPaths.Resolve("auth.json", env.ContentRootPath));
+        _sessionsPath = AppPaths.Resolve("sessions.json", env.ContentRootPath);
         LoadSessions();
     }
 

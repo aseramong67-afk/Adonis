@@ -23,7 +23,7 @@ public sealed class SettingsService
 
     public SettingsService(IWebHostEnvironment env)
     {
-        _file = Path.Combine(env.ContentRootPath, "settings.json");
+        _file = AppPaths.Resolve("settings.json", env.ContentRootPath);
         Current = Load();
     }
 

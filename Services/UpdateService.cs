@@ -62,14 +62,10 @@ public sealed class UpdateService
         !string.IsNullOrWhiteSpace(_gitHub.Owner) && !string.IsNullOrWhiteSpace(_gitHub.Repo);
 
     /// <summary>
-    /// Single-file (self-contained) сборка не содержит runtimeconfig.json рядом с exe.
-    /// Portable-версия должна обновляться только из portable-ассета, иначе она заменит
-    /// себя обычной версией, которая без установленного .NET не запустится.
+    /// Существует только portable (single-file) сборка, поэтому обновление всегда ищет
+    /// portable-ассет вида Adonis-portable-*.zip.
     /// </summary>
-    private bool IsPortable =>
-        !File.Exists(Path.Combine(AppContext.BaseDirectory, $"{typeof(UpdateService).Assembly.GetName().Name}.runtimeconfig.json"));
-
-    private string ExpectedAssetPrefix => IsPortable ? "Adonis-portable-" : _gitHub.ReleaseAsset;
+    private string ExpectedAssetPrefix => "Adonis-portable-";
 
     public async Task<UpdateInfo> CheckForUpdateAsync(bool force = false)
     {
@@ -131,7 +127,7 @@ public sealed class UpdateService
         if (Directory.Exists(updateDir)) Directory.Delete(updateDir, true);
         Directory.CreateDirectory(updateDir);
 
-        var zipPath = Path.Combine(updateDir, _gitHub.ReleaseAsset);
+        var zipPath = Path.Combine(updateDir, "adonis-update.zip");
         var bytes = await _http.GetByteArrayAsync(info.AssetUrl);
         await File.WriteAllBytesAsync(zipPath, bytes);
 

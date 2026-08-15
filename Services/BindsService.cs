@@ -22,7 +22,7 @@ public sealed class BindsService
 
     public BindsService(IWebHostEnvironment env, SettingsService settings)
     {
-        _file = Path.Combine(env.ContentRootPath, "binds.json");
+        _file = AppPaths.Resolve("binds.json", env.ContentRootPath);
         _settings = settings;
         Current = Load();
     }
