@@ -44,7 +44,10 @@ public sealed class UpdateService
         try
         {
             var asm = typeof(UpdateService).Assembly;
-            var info = FileVersionInfo.GetVersionInfo(asm.Location);
+            var exePath = string.IsNullOrWhiteSpace(asm.Location)
+                ? Path.Combine(AppContext.BaseDirectory, $"{asm.GetName().Name}.exe")
+                : asm.Location;
+            var info = FileVersionInfo.GetVersionInfo(exePath);
             if (!string.IsNullOrWhiteSpace(info.ProductVersion))
             {
                 var v = info.ProductVersion.Split('+')[0].Trim();

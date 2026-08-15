@@ -114,8 +114,8 @@ public sealed class BindsService
 
     private static readonly List<BindEntry> DefaultBinds =
     [
-        new() { Key = "G", Command = "say /buyhealth", Description = "Купить здоровье", Category = "Магазин", Enabled = true, Favorite = true },
-        new() { Key = "H", Command = "say /buyarmor", Description = "Купить броню", Category = "Магазин", Enabled = true, Favorite = true },
+        new() { Key = "G", Command = "say /buyhealth", Description = "Купить здоровье", Category = "Магазин", Enabled = false, Favorite = false },
+        new() { Key = "H", Command = "say /buyarmor", Description = "Купить броню", Category = "Магазин", Enabled = false, Favorite = false },
         new() { Key = "кнопка", Command = "darkrp buyleaves", Description = "Купить листья", Category = "Магазин", Enabled = false },
         new() { Key = "кнопка", Command = "darkrp buybakingsoda", Description = "Купить содовую", Category = "Магазин", Enabled = false },
         new() { Key = "кнопка", Command = "darkrp buywaters", Description = "Купить воду", Category = "Магазин", Enabled = false },
